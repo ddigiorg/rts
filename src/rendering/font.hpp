@@ -8,7 +8,7 @@
 #ifndef FONT_HPP
 #define FONT_HPP
 
-#include "graphics/shader.hpp"
+#include "rendering/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>

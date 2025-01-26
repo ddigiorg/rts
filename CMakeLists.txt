@@ -14,10 +14,17 @@ include_directories(
 
 add_executable(
     Game
-    ${SOURCE_PATH}/ecs/chunk.cpp
-    ${SOURCE_PATH}/ecs/archetype.cpp
-    ${SOURCE_PATH}/ecs/world.cpp
-    ${SOURCE_PATH}/main.cpp
+    # ${SOURCE_PATH}/ecs/Chunk.cpp
+    # ${SOURCE_PATH}/ecs/Archetype.cpp
+    # ${SOURCE_PATH}/ecs/Query.cpp
+    # ${SOURCE_PATH}/ecs/Manager.cpp
+    ${SOURCE_PATH}/Main.cpp
+)
+
+target_include_directories(
+    Game
+    PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/
 )
 
 target_link_libraries(

@@ -1,5 +1,5 @@
-#ifndef SHADER_HPP
-#define SHADER_HPP
+// Shader.hpp
+#pragma once
 
 #include <GL/glew.h>
 #include <SDL.h>
@@ -11,6 +11,8 @@
 #include <fstream>
 #include <string>
 #include <vector>
+
+namespace GFX {
 
 class Shader {
 public:
@@ -136,4 +138,4 @@ void Shader::_loadShaderFromFile(GLuint& shaderId, const char* filepath, GLuint 
     }
 }
 
-#endif // SHADER_HPP
+} // namespace GFX
