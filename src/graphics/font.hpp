@@ -1,4 +1,4 @@
-// https://learnopengl.com/In-Practice/Text-Rendering
+// https://learnopengl.com/In-Practice/Text-graphics
 // signed distance fields (SDFs):
 // - https://www.youtube.com/watch?v=1b5hIMqz_wM
 // - https://www.youtube.com/watch?v=d8cfgcJR9Tk
@@ -8,7 +8,7 @@
 #ifndef FONT_HPP
 #define FONT_HPP
 
-#include "rendering/shader.hpp"
+#include "graphics/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>

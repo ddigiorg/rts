@@ -1,22 +1,21 @@
 // Shader.hpp
 #pragma once
 
+#include "utilities/File.hpp"
+
 #include <GL/glew.h>
-#include <SDL.h>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
 
 namespace GFX {
 
 class Shader {
 public:
-    Shader(const char* vertFilepath, const char* fragFilepath);
+    Shader() {};
+    Shader(const char* vertPath, const char* fragPath);
     ~Shader();
     void use();
     void setUniform1f(const GLchar* name, GLfloat v0);
@@ -29,17 +28,25 @@ public:
 private:
     void _loadShaderFromFile(GLuint& shader, const char* filepath, GLuint type);
 
-    GLuint program;
+    GLuint program = 0;
 };
 
-Shader::Shader(const char* vertFilepath, const char* fragFilepath) {
-    GLuint vertShader;
-    GLuint fragShader;
+Shader::Shader(const char* vertPath, const char* fragPath) {
+    GLuint vertShader = 0;
+    GLuint fragShader = 0;
 
-    _loadShaderFromFile(vertShader, vertFilepath, GL_VERTEX_SHADER);
-    _loadShaderFromFile(fragShader, fragFilepath, GL_FRAGMENT_SHADER);
+    // load shaders
+    _loadShaderFromFile(vertShader, vertPath, GL_VERTEX_SHADER);
+    _loadShaderFromFile(fragShader, fragPath, GL_FRAGMENT_SHADER);
 
+    // setup program
     program = glCreateProgram();
+    if (program == 0) {
+        std::cerr << "Error: Failed to create shader program." << std::endl;
+        exit(1);
+    }
+
+    // attach shaders to program
     glAttachShader(program, vertShader);
     glAttachShader(program, fragShader);
     glLinkProgram(program);
@@ -52,20 +59,24 @@ Shader::Shader(const char* vertFilepath, const char* fragFilepath) {
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
         char* infoLog = new char[length];
         glGetProgramInfoLog(program, length, &length, infoLog);
-        std::cout << "Error: Program linking failed." << std::endl
-                  << "infoLog: " << infoLog << std::endl;
+        std::cerr << "Error: Failed to link shader program:" << std::endl
+                  << "- infoLog: " << infoLog << std::endl;
         delete[] infoLog;
         glDeleteProgram(program);
+        program = 0;
         exit(1);
     }
 
+    // optionally validate the program (GL_VALIDATE_STATUS)
     glValidateProgram(program);
-    glDeleteShader(vertShader);
-    glDeleteShader(fragShader);
+
+    // release shaders
+    if (vertShader) glDeleteShader(vertShader);
+    if (fragShader) glDeleteShader(fragShader);
 }
 
 Shader::~Shader() {
-    glDeleteProgram(program);
+    if (program) glDeleteProgram(program);
 }
 
 void Shader::use() {
@@ -102,38 +113,33 @@ void Shader::setUniformBlockBinding(const GLchar* name, GLuint binding) {
     glUniformBlockBinding(program, location, binding);
 }
 
-void Shader::_loadShaderFromFile(GLuint& shaderId, const char* filepath, GLuint type) {
-
-    // read shader source from file
-    std::string line = "";
-    std::string source = "";
-    std::ifstream file(filepath);
-    if(file.is_open()) {
-        while(std::getline(file, line)) {
-            source += line + "\n";
-        }
-        file.close();
+void Shader::_loadShaderFromFile(GLuint& shader, const char* filepath, GLuint type) {
+    shader = glCreateShader(type);
+    if (shader == 0) {
+        std::cerr << "Error: Failed to create shader object for " << filepath << std::endl;
+        exit(1);
     }
 
-    // load and compile shader
-    shaderId = glCreateShader(type);
-    const char* src = source.c_str();
-    glShaderSource(shaderId, 1, &src, nullptr);
-    glCompileShader(shaderId);
+    // compile the shader file
+    std::string content = readFile(filepath);
+    const char* source = content.c_str();
+    glShaderSource(shader, 1, &source, nullptr);
+    glCompileShader(shader);
 
     // check for shader compile errors 
     GLint success;
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if(!success) {
         int length;
-        glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &length);
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char* infoLog = new char[length];
-        glGetShaderInfoLog(shaderId, length, &length, infoLog);
-        std::cout << "Error: Shader compilation failed." << std::endl
-                  << "filepath: " << filepath << std::endl
-                  << "infoLog: " << infoLog << std::endl;
+        glGetShaderInfoLog(shader, length, &length, infoLog);
+        std::cerr << "Error: Failed to compile shader:" << std::endl
+                  << "- filepath = " << filepath << std::endl
+                  << "- infoLog = " << infoLog << std::endl;
         delete[] infoLog;
-        glDeleteShader(shaderId);
+        glDeleteShader(shader);
+        shader = 0;
         exit(1);
     }
 }

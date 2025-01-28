@@ -2,8 +2,10 @@
 #pragma once
 
 #include "ecs/Types.hpp"
+#include "ecs/EntityManager.hpp"
 #include "ecs/Archetype.hpp"
 #include "utilities/Assert.hpp"
+#include "utilities/Timer.hpp" // TODO: REMOVE AFTER DEBUGGING
 
 #include <iostream>
 #include <queue>
@@ -48,9 +50,9 @@ public:
     // entity functions
     EntityID createEntity(const Signature& sig);
     void removeEntity(const EntityID id);
-    void enableEntity(const EntityID id);
-    void disableEntity(const EntityID id);
     bool isEntityEnabled(const EntityID id);
+    void disableEntity(const EntityID id);
+    void enableEntity(const EntityID id);
     template<typename T>
     void addEntityComponent(const EntityID id);
     template<typename T>
@@ -74,15 +76,9 @@ public:
     void print();
 
 private:
-    EntityID _getNewEntityID();
     Archetype* _getOrCreateArchetype(const Signature& sig);
 
-    // TODO: these suck and I want to kms myself... needs improvement
-    void _moveEntityRight(const EntityID eid, const ComponentID cid);
-    void _moveEntityLeft(const EntityID eid, const ComponentID cid);
-
-    // TODO: make an entity manager class
-    EntityMap entities = {};
+    EntityManager entityManager;
 
     std::vector<ComponentRecord> components = {};
     std::vector<System*> systems = {};
@@ -93,6 +89,10 @@ private:
 
     std::vector<EntityID> recycledEntityIDs;
     std::queue<EventID> eventQueue;
+
+    Timer timer; // TODO: REMOVE AFTER DEBUGGING
+    // timer.reset();
+    // std::cout << timer.elapsed() << std::endl;
 };
 
 // =============================================================================
@@ -104,12 +104,12 @@ Manager::Manager() {
 }
 
 Manager::~Manager() {
-    for (System* system : systems) {
+    for (System*& system : systems) {
         if (system != nullptr)
             delete system;
+            system = nullptr;
     }
 
-    // TODO: do I need to delete from entities too?
     for (const auto& pair : archetypes) {
         if (pair.second != nullptr)
             delete pair.second;
@@ -121,9 +121,7 @@ Manager::~Manager() {
 // =============================================================================
 
 bool Manager::hasEntity(const EntityID id) {
-    if (entities.find(id) != entities.end())
-        return true;
-    return false;
+    return entityManager.hasEntity(id);
 }
 
 bool Manager::hasComponent(const ComponentID id) {
@@ -239,35 +237,35 @@ void Manager::triggerQueuedEvents() {
 // Entity Functions
 // =============================================================================
 
-// TODO: This is REALLY SLOW for ~1 million entities... NEEDS IMPROVEMENT
-// TODO: should only happen on event before update
+// TODO: this should only happen on event before update
 EntityID Manager::createEntity(const Signature& sig) {
     for (const ComponentID id : sig) {
         ASSERT(hasComponent(id), "Component " << id << " does not exist.");
     }
     Signature sortedSig = sig;
     std::sort(sortedSig.begin(), sortedSig.end());
-    EntityID id = _getNewEntityID();
     Archetype* arch = _getOrCreateArchetype(sortedSig);
-    EntityInfo einfo = EntityInfo{id, arch, 0, 0};
-    arch->insertEntity(einfo);
-    entities[einfo.id] = EntityRecord{einfo.arch, einfo.col, einfo.row};
+    EntityID id = entityManager.createEntity();
+    arch->insertEntity(id);
     return id;
 }
 
 // TODO: this should only happen on event before update
 void Manager::removeEntity(const EntityID id) {
     ASSERT(hasEntity(id), "Entity " << id <<" does not exist.");
-    EntityRecord entity = entities[id];
-    EntityInfo einfo = EntityInfo{id, entity.arch, entity.col, entity.row};
-    einfo.arch->removeEntity(einfo);
-    entities[einfo.id] = EntityRecord{einfo.arch, einfo.col, einfo.row};
-    entities.erase(id);
+    EntityRecord entity = entityManager.getEntity(id);
+    if (entity.arch != nullptr)
+        entity.arch->removeEntity(id);
+    else
+        entityManager.removeEntity(id);
 }
 
-void Manager::enableEntity(const EntityID id) {
-    ASSERT(!isEntityEnabled(id), "Entity " << id << "is already enabled.");
-    delEntityComponent<Disabled>(id);
+bool Manager::isEntityEnabled(const EntityID id) {
+    ASSERT(hasEntity(id), "Entity " << id <<" does not exist.");
+    EntityRecord entity = entityManager.getEntity(id);
+    Archetype* arch = entity.arch;
+    bool hasDisabled = arch->hasComponent(typeof(Disabled));
+    return !hasDisabled;
 }
 
 void Manager::disableEntity(const EntityID id) {
@@ -275,11 +273,9 @@ void Manager::disableEntity(const EntityID id) {
     addEntityComponent<Disabled>(id);
 }
 
-bool Manager::isEntityEnabled(const EntityID id) {
-    ASSERT(hasEntity(id), "Entity " << id <<" does not exist.");
-    Archetype* arch = entities[id].arch;
-    bool hasDisabled = arch->hasComponent(typeof(Disabled));
-    return !hasDisabled;
+void Manager::enableEntity(const EntityID id) {
+    ASSERT(!isEntityEnabled(id), "Entity " << id << "is already enabled.");
+    delEntityComponent<Disabled>(id);
 }
 
 template<typename T>
@@ -287,19 +283,29 @@ void Manager::addEntityComponent(const EntityID eid) {
     ComponentID cid = getComponentID<T>();
     ASSERT(hasEntity(eid), "Entity " << eid << " does not exist.");
     ASSERT(hasComponent(cid), "Component " << cid << " does not exist.");
-    Archetype* oldArch = entities[eid].arch;
-    ASSERT(!oldArch->hasComponent(cid), "Entity " << eid << " already has Component " << cid << ".");
+    ASSERT(!entityManager.getEntity(eid).arch->hasComponent(cid),
+        "Entity " << eid << " already has Component " << cid << ".");
 
-    _moveEntityRight(eid, cid);
+    // get source and destination archetypes
+    Archetype* srcArch = entityManager.getEntity(eid).arch;
+    Archetype* dstArch = srcArch->getRightNode(cid);
 
-    // TODO: perhaps this should be an Archetype function?
-    // clear the entity's new component data
-    EntityRecord& newEntity = entities[eid];
-    Archetype* newArch = newEntity.arch;
-    size_t newCol = newEntity.col;
-    size_t newRow = newEntity.row;
-    T* data = newArch->getComponentData<T>(newCol, newRow);
-    *data = T{};
+    // if destination Archetype does not exist then create it
+    if (dstArch == nullptr) {
+
+        // add new component id to signature
+        Signature sig = srcArch->getSignature();
+        sig.push_back(cid);
+        std::sort(sig.begin(), sig.end());
+
+        // create destination archetype and set graph edges
+        dstArch = _getOrCreateArchetype(sig);
+        srcArch->setRightNode(dstArch, cid);
+        dstArch->setLeftNode(srcArch, cid);
+    }
+
+    // move entity component data to archetype
+    srcArch->moveEntityRight(eid, cid);
 }
 
 template<typename T>
@@ -307,10 +313,30 @@ void Manager::delEntityComponent(const EntityID eid) {
     ComponentID cid = getComponentID<T>();
     ASSERT(hasEntity(eid), "Entity " << eid << " does not exist.");
     ASSERT(hasComponent(cid), "Component " << cid << " does not exist.");
-    Archetype* oldArch = entities[eid].arch;
-    ASSERT(oldArch->hasComponent(cid), "Entity " << eid << " does not have Component " << cid << ".");
+    ASSERT(entityManager.getEntity(eid).arch->hasComponent(cid),
+        "Entity " << eid << " does not have Component " << cid << ".");
 
-    _moveEntityLeft(eid, cid);
+    // get source and destination archetypes
+    Archetype* srcArch = entityManager.getEntity(eid).arch;
+    Archetype* dstArch = srcArch->getLeftNode(cid);
+
+    // if destination Archetype does not exist then create it
+    if (dstArch == nullptr) {
+
+        // remove component id from signature
+        Signature sig = srcArch->getSignature();
+        auto newEnd = std::remove(sig.begin(), sig.end(), cid);
+        sig.erase(newEnd, sig.end());
+        std::sort(sig.begin(), sig.end());
+
+        // get or create destination archetype and set graph edges
+        dstArch = _getOrCreateArchetype(sig);
+        srcArch->setLeftNode(dstArch, cid);
+        dstArch->setRightNode(srcArch, cid);
+    }
+
+    // move entity component data to archetype
+    srcArch->moveEntityLeft(eid, cid);
 }
 
 // template<typename T>
@@ -381,13 +407,13 @@ std::vector<Archetype*>& Manager::query(const Signature& all) {
     if (it != queries.end())
         return it->second.matchingArchetypes;
 
+    // TODO: clean this up
     // search for match
     queries[hash] = {};
     std::vector<Archetype*>& matchingArchetypes = queries[hash].matchingArchetypes;
-
     for (const auto& pair : archetypes) {
         Archetype* archetype = pair.second;
-        if (archetype->getHash() == hash)
+        if (archetype->hasComponents(all))
             matchingArchetypes.push_back(archetype);
     }
     return matchingArchetypes;
@@ -399,14 +425,19 @@ std::vector<Archetype*>& Manager::query(const Signature& all) {
 
 void Manager::print() {
 
+    std::vector<EntityRecord*> entities = entityManager.getEntities();
     std::cout << "Entities:" << std::endl;
-    for (const auto& pair : entities) {
-        const ID& id = pair.first;
-        const EntityRecord& e = pair.second;
-        std::cout << "  - id: " << id << std::endl;
-        std::cout << "    arch: " << e.arch->getHash() << std::endl;
-        std::cout << "    col: " << e.col << std::endl;
-        std::cout << "    row: " << e.row << std::endl;
+    for (size_t id = 0; id < entities.size(); id++) {
+        EntityRecord* entity = entities[id];
+        if (entity != nullptr) {
+            std::cout << "  - id: " << id << std::endl;
+            if (entity->arch == nullptr)
+                std::cout << "    arch: nullptr" << std::endl;
+            else
+                std::cout << "    arch: " << entity->arch->getHash() << std::endl;
+            std::cout << "    col: " << entity->col << std::endl;
+            std::cout << "    row: " << entity->row << std::endl;
+        }
     }
     std::cout << std::endl;
 
@@ -451,111 +482,14 @@ void Manager::print() {
 // Private Functions
 // =============================================================================
 
-EntityID Manager::_getNewEntityID() {
-    EntityID id = 0;
-    if (recycledEntityIDs.size() > 0) {
-        id = recycledEntityIDs.back();
-        recycledEntityIDs.pop_back();
-    }
-    else {
-        id = getNextEntityID();
-    }
-    return id;
-}
-
 Archetype* Manager::_getOrCreateArchetype(const Signature& sig) {
     Hash hash = hashSignature(sig);
     auto it = archetypes.find(hash);
     if (it == archetypes.end()) {
-        auto result = archetypes.emplace(
-            hash, new Archetype(hash, sig, components)
-        );
+        auto result = archetypes.emplace(hash, new Archetype(hash, sig, &entityManager, components));
         return result.first->second;
     }
     return it->second;
-}
-
-void Manager::_moveEntityRight(const EntityID eid, const ComponentID cid) {
-    EntityRecord srcEntity = entities[eid];
-    Archetype* srcArch = srcEntity.arch;
-    Archetype* dstArch = srcArch->getRightNode(cid);
-
-    // if destination Archetype does not exist then create it
-    if (dstArch == nullptr) {
-
-        // add component id to signature
-        Signature sig = srcArch->getSignature();
-        sig.push_back(cid);
-        std::sort(sig.begin(), sig.end());
-
-        // get or create destination archetype and set graph edges
-        dstArch = _getOrCreateArchetype(sig);
-        srcArch->setRightNode(dstArch, cid);
-        dstArch->setLeftNode(srcArch, cid);
-    }
-
-    // insert entity into destination Archetype
-    EntityInfo dstInfo = EntityInfo{eid, dstArch, 0, 0};
-    dstArch->insertEntity(dstInfo);
-    EntityRecord dstEntity = EntityRecord{dstInfo.arch, dstInfo.col, dstInfo.row};
-
-    // copy entity's component data from source chunk to destination chunk
-    Archetype::copyComponentData(
-        srcArch->getSignature(),
-        srcArch->getComponents(),
-        srcEntity,
-        dstEntity
-    );
-
-    // remove entity from source Archetype
-    EntityInfo srcInfo = EntityInfo{eid, srcArch, srcEntity.col, srcEntity.row};
-    srcArch->removeEntity(srcInfo);
-
-    // update entities map
-    entities[srcInfo.id] = EntityRecord{srcInfo.arch, srcInfo.col, srcInfo.row};
-    entities[dstInfo.id] = EntityRecord{dstInfo.arch, dstInfo.col, dstInfo.row};
-}
-
-void Manager::_moveEntityLeft(const EntityID eid, const ComponentID cid) {
-    EntityRecord srcEntity = entities[eid];
-    Archetype* srcArch = srcEntity.arch;
-    Archetype* dstArch = srcArch->getLeftNode(cid);
-
-    // if destination Archetype does not exist then create it
-    if (dstArch == nullptr) {
-
-        // remove component id from signature
-        Signature sig = srcArch->getSignature();
-        auto newEnd = std::remove(sig.begin(), sig.end(), cid);
-        sig.erase(newEnd, sig.end());
-        std::sort(sig.begin(), sig.end());
-
-        // get or create destination archetype and set graph edges
-        dstArch = _getOrCreateArchetype(sig);
-        srcArch->setLeftNode(dstArch, cid);
-        dstArch->setRightNode(srcArch, cid);
-    }
-
-    // insert entity into destination Archetype
-    EntityInfo dstInfo = EntityInfo{eid, dstArch, 0, 0};
-    dstArch->insertEntity(dstInfo);
-    EntityRecord dstEntity = EntityRecord{dstInfo.arch, dstInfo.col, dstInfo.row};
-
-    // copy entity's component data from source chunk to destination chunk
-    Archetype::copyComponentData(
-        dstArch->getSignature(),
-        dstArch->getComponents(),
-        srcEntity,
-        dstEntity
-    );
-
-    // remove entity from source Archetype
-    EntityInfo srcInfo = EntityInfo{eid, srcArch, srcEntity.col, srcEntity.row};
-    srcArch->removeEntity(srcInfo);
-
-    // update entities map
-    entities[srcInfo.id] = EntityRecord{srcInfo.arch, srcInfo.col, srcInfo.row};
-    entities[dstInfo.id] = EntityRecord{dstInfo.arch, dstInfo.col, dstInfo.row};
 }
 
 } // namespace ECS

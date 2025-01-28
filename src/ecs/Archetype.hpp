@@ -2,7 +2,9 @@
 #pragma once
 
 #include "ecs/Types.hpp"
+#include "ecs/EntityManager.hpp"
 #include "utilities/Assert.hpp"
+#include "utilities/Timer.hpp" // TODO: REMOVE AFTER DEBUGGING
 
 #include <vector>
 #include <unordered_map>
@@ -13,7 +15,7 @@ namespace ECS {
 
 using ComponentMap = std::unordered_map<ComponentID, ComponentRecord>;
 
-// A Chunk represents a contiguous block of memory for storing entiy component 
+// A Chunk represents a contiguous block of memory for storing entity component 
 // data.  It is designed for efficient memory access and L1 cache locality.
 struct Chunk {
     using byte = char;
@@ -25,26 +27,23 @@ struct Chunk {
     byte buffer;     // buffer start
 };
 
-// TODO: this needs to be improved or removed... basically I needed a way to
-//       edit the Manager EntityMap after inserting or removing entities from
-//       an Archetype
-struct EntityInfo {
-    EntityID id;
-    Archetype* arch;
-    size_t col;
-    size_t row;
-};
-
 struct ArchetypeGraphNode {
     Archetype* left;
     Archetype* right;
 };
+
+inline void copyEntityComponetData(
+    const EntityRecord& src,
+    const EntityRecord& dst,
+    bool useDstSig = false
+);
 
 class Archetype {
 public:
     Archetype(
         const Hash hash,
         const Signature& sig,
+        EntityManager* entityManager,
         const std::vector<ComponentRecord>& registeredComponents
     );
 
@@ -55,10 +54,11 @@ public:
     bool hasComponent(const ComponentID id);
     bool hasComponents(const Signature& sig);
 
-    // TODO: using einfo is very confusing... need a better way to do this
     // entity functions
-    void insertEntity(EntityInfo& einfo);
-    void removeEntity(EntityInfo& einfo);
+    void insertEntity(const EntityID id);
+    void removeEntity(const EntityID id);
+    void moveEntityRight(const EntityID eid, const ComponentID cid);
+    void moveEntityLeft(const EntityID eid, const ComponentID cid);
 
     // graph functions
     Archetype* getRightNode(const ComponentID id);
@@ -72,14 +72,9 @@ public:
     T* getComponentDataArray(size_t col);
     template <typename T>
     T* getComponentData(size_t col, size_t row);
-
-    // static function to copy component data from one Archetype to another
-    static void copyComponentData(
-        const Signature& componendIDs,
-        const ComponentMap& cmap,
-        const EntityRecord& src,
-        const EntityRecord& dst
-    );
+    template <typename T>
+    void clearComponentData(size_t col, size_t row);
+    void clearComponentData(ComponentID id, size_t col, size_t row);
 
     // getters
     Hash getHash() const { return hash; };
@@ -91,8 +86,8 @@ public:
     const ComponentMap& getComponents() const { return components; };
 
 private:
-    void _pushBackChunk();
-    void _popBackChunk();
+    void _allocateBackChunk();
+    void _deallocateBackChunk();
 
     Hash hash;
     Signature signature;
@@ -101,6 +96,11 @@ private:
     std::vector<Chunk*> chunks;
     ComponentMap components;
     std::unordered_map<ComponentID, ArchetypeGraphNode> nodes;
+    EntityManager* entityManager;
+
+    Timer timer; // TODO: REMOVE AFTER DEBUGGING
+    // timer.reset();
+    // std::cout << timer.elapsed() << std::endl;
 };
 
 // =============================================================================
@@ -110,6 +110,7 @@ private:
 Archetype::Archetype(
         const Hash hash,
         const Signature& sig,
+        EntityManager* entityManager,
         const std::vector<ComponentRecord>& registeredComponents
 ) {
     size_t entitySize = 0;
@@ -117,6 +118,7 @@ Archetype::Archetype(
 
     this->hash = hash;
     this->signature = sig;
+    this->entityManager = entityManager;
 
     // calculate size of entity data
     for (const ComponentID& id : signature)
@@ -130,7 +132,6 @@ Archetype::Archetype(
 
     // set components
     for (const ComponentID& id : signature) {
-        // TODO: need to check if cid is in cmap
         size_t size = registeredComponents[id].size;
         components.emplace(id, ComponentRecord{size, offset});
         offset += maxEntitiesPerChunk * size;
@@ -149,11 +150,13 @@ Archetype::~Archetype() {
 // =============================================================================
 
 bool Archetype::hasEntity(const EntityID id) {
-    if (std::find(entities.begin(), entities.end(), id) != entities.end())
-        return true;
-    return false;
+    if (entityManager->hasEntity(id) == false)
+        return false;
+    EntityRecord entity = entityManager->getEntity(id);
+    if (entity.arch != this)
+        return false;
+    return true;
 }
-
 
 bool Archetype::hasComponent(const ComponentID id) {
     if (components.find(id) != components.end())
@@ -173,35 +176,46 @@ bool Archetype::hasComponents(const Signature& sig) {
 // Entity Functions
 // =============================================================================
 
-void Archetype::insertEntity(EntityInfo& einfo) {
-    ASSERT(!hasEntity(einfo.id), "Entity " << einfo.id << "is already in Archetype " << hash << ".");
-    size_t id = einfo.id;
+void Archetype::insertEntity(const EntityID id) {
+    ASSERT(!hasEntity(id), "Entity " << id << "is already in Archetype " << hash << ".");
 
-    // allocate a new chunk if there are no chunks or back chunk is full
-    if (chunks.size() == 0 || chunks.back()->count == maxEntitiesPerChunk)
-        _pushBackChunk();
+    // allocate new chunk if no chunks exist
+    if (chunks.empty())
+        _allocateBackChunk();
 
-    // add entity to back index of back chunk
+    // allocate new chunk if back chunk is full
+    Chunk* dstChunk = chunks.back();
+    if (dstChunk->count == dstChunk->capacity) {
+        _allocateBackChunk();
+        dstChunk = chunks.back();
+    }
+
+    // insert entity to chunk
     entities.push_back(id);
+    dstChunk->count++;
 
-    einfo.col = chunks.size() - 1;
-    einfo.row = chunks.back()->count++;
+    // clear entity's component data
+    EntityRecord entity = EntityRecord{this, chunks.size()-1, dstChunk->count-1};
+    for (const ComponentID id : signature)
+        clearComponentData(id, entity.col, entity.row);
+
+    // update entity manager
+    entityManager->setEntity(id, entity);
 }
 
-void Archetype::removeEntity(EntityInfo& einfo) {
-    ASSERT(hasEntity(einfo.id), "Entity " << einfo.id << " does not exist in Archetype " << hash << ".");
+void Archetype::removeEntity(const EntityID id) {
+    ASSERT(hasEntity(id), "Entity " << id << " does not exist in Archetype " << hash << ".");
 
-    // get source and destination information
     Chunk* srcChunk = chunks.back();
     EntityID srcID = entities.back();
-    EntityID dstID = einfo.id;
-    EntityRecord dstEntity = EntityRecord{this, einfo.col, einfo.row};
-    EntityRecord srcEntity = EntityRecord{this, chunks.size()-1, srcChunk->count-1};
+    EntityID dstID = id;
+    EntityRecord srcEntity = EntityRecord{this, srcChunk->index, srcChunk->count-1};
+    EntityRecord dstEntity = entityManager->getEntity(id);
 
-    // copy buffer data from back entity to the entity being removed
-    copyComponentData(signature, components, srcEntity, dstEntity);
+    // move entity component data from back to fill the missing spot
+    copyEntityComponetData(srcEntity, dstEntity);
 
-    // copy entity id from back index to remove index
+    // move entity id from back index to the removed index
     size_t i = dstEntity.col * maxEntitiesPerChunk + dstEntity.row;
     entities[i] = srcID;
     entities.pop_back();
@@ -209,9 +223,113 @@ void Archetype::removeEntity(EntityInfo& einfo) {
 
     // deallocate back chunk if it is empty
     if (srcChunk->count == 0)
-        _popBackChunk();
+        _deallocateBackChunk();
 
-    einfo.id = srcID;
+    // update entity manager
+    entityManager->setEntity(srcID, dstEntity);
+    entityManager->removeEntity(dstID);
+}
+
+void Archetype::moveEntityRight(const EntityID eid, const ComponentID cid) {
+    Archetype* intoArch = getRightNode(cid);
+    ASSERT(hasEntity(eid), "Entity " << eid << " does not exist in Archetype " << hash << ".");
+    ASSERT(intoArch != nullptr, "Right Archetype does not exist.");
+    ASSERT(intoArch->hasComponent(cid), "Component " << cid << " does not exist on Right Archetype " << intoArch->getHash() << ".");
+
+    Chunk* intoChunk = nullptr;
+    Chunk* backChunk = nullptr;
+    EntityRecord fromEntity = entityManager->getEntity(eid);
+    EntityRecord intoEntity;
+    EntityRecord backEntity;
+
+    // allocate new chunk if no chunks exist in destination archetype
+    if (intoArch->chunks.empty())
+        intoArch->_allocateBackChunk();
+
+    // allocate new chunk if back chunk is full in destination archetype
+    intoChunk = intoArch->chunks.back();
+    if (intoChunk->count == intoChunk->capacity) {
+        intoArch->_allocateBackChunk();
+        intoChunk = intoArch->chunks.back();
+    }
+
+    // add entity id to back of destination archetype
+    intoArch->entities.push_back(eid);
+    intoChunk->count++;
+
+    // move entity component data to destination archetype
+    intoEntity = EntityRecord{intoArch, intoChunk->index, intoChunk->count-1};
+    copyEntityComponetData(fromEntity, intoEntity);
+
+    // clear entity's added component data
+    intoArch->clearComponentData(cid, intoEntity.col, intoEntity.row);
+
+    // move entity component data from back to fill the missing spot in source archetype
+    backChunk = chunks.back();
+    backEntity = EntityRecord{this, backChunk->index, backChunk->count-1};
+    copyEntityComponetData(backEntity, fromEntity);
+
+    // move entity id from back index to the removed index
+    size_t i = fromEntity.col * maxEntitiesPerChunk + fromEntity.row;
+    this->entities[i] = this->entities.back();
+    this->entities.pop_back();
+    backChunk->count--;
+
+    // deallocate back chunk if it is empty
+    if (backChunk->count == 0)
+        this->_deallocateBackChunk();
+
+    // update entity manager
+    entityManager->setEntity(eid, intoEntity);
+}
+
+void Archetype::moveEntityLeft(const EntityID eid, const ComponentID cid) {
+    Archetype* intoArch = getLeftNode(cid);
+    ASSERT(hasEntity(eid), "Entity " << eid << " does not exist in Archetype " << hash << ".");
+    ASSERT(intoArch != nullptr, "Left Archetype does not exist.");
+
+    Chunk* intoChunk = nullptr;
+    Chunk* backChunk = nullptr;
+    EntityRecord fromEntity = entityManager->getEntity(eid);
+    EntityRecord intoEntity;
+    EntityRecord backEntity;
+
+    // allocate new chunk if no chunks exist in destination archetype
+    if (intoArch->chunks.empty())
+        intoArch->_allocateBackChunk();
+
+    // allocate new chunk if back chunk is full in destination archetype
+    intoChunk = intoArch->chunks.back();
+    if (intoChunk->count == intoChunk->capacity) {
+        intoArch->_allocateBackChunk();
+        intoChunk = intoArch->chunks.back();
+    }
+
+    // add entity id to back of destination archetype
+    intoArch->entities.push_back(eid);
+    intoChunk->count++;
+
+    // move entity component data to destination archetype
+    intoEntity = EntityRecord{intoArch, intoChunk->index, intoChunk->count-1};
+    copyEntityComponetData(fromEntity, intoEntity, true); // loop on destination component types
+
+    // move entity component data from back to fill the missing spot in source archetype
+    backChunk = chunks.back();
+    backEntity = EntityRecord{this, backChunk->index, backChunk->count-1};
+    copyEntityComponetData(backEntity, fromEntity);
+
+    // move entity id from back index to the removed index
+    size_t i = fromEntity.col * maxEntitiesPerChunk + fromEntity.row;
+    this->entities[i] = this->entities.back();
+    this->entities.pop_back();
+    backChunk->count--;
+
+    // deallocate back chunk if it is empty
+    if (backChunk->count == 0)
+        this->_deallocateBackChunk();
+
+    // update entity manager
+    entityManager->setEntity(eid, intoEntity);
 }
 
 // =============================================================================
@@ -276,27 +394,29 @@ T* Archetype::getComponentData(size_t col, size_t row) {
     return reinterpret_cast<T*>(reinterpret_cast<void*>(&chunk->buffer + component.offset + component.size * row));
 }
 
-void Archetype::copyComponentData(
-    const Signature& componendIDs,
-    const ComponentMap& cmap,
-    const EntityRecord& src,
-    const EntityRecord& dst
-) {
-    for (const ComponentID id : componendIDs) {
-        ComponentRecord c = cmap.at(id);
-        size_t size = c.size;
-        size_t offset = c.offset;
-        void* srcPtr = src.arch->getBufferLocation(id, dst.col, dst.row);
-        void* dstPtr = dst.arch->getBufferLocation(id, src.col, src.row);
-        std::memcpy(dstPtr, srcPtr, size);
-    }
+template <typename T>
+void Archetype::clearComponentData(size_t col, size_t row) {
+    size_t id = typeof(T);
+    ASSERT(hasComponent(id), "Component " << id << " not in Archetype " << hash << ".");
+    ASSERT(col < chunks.size(), "Requested col index out of bounds");
+    ASSERT(row < chunks[col]->capacity, "Requested row index out of bounds");
+    clearComponentData(id, col, row);
+}
+
+void Archetype::clearComponentData(ComponentID id, size_t col, size_t row) {
+    ASSERT(hasComponent(id), "Component " << id << " not in Archetype " << hash << ".");
+    ASSERT(col < chunks.size(), "Requested col index out of bounds");
+    ASSERT(row < chunks[col]->capacity, "Requested row index out of bounds");
+    ComponentRecord component = components[id];
+    Chunk* chunk = chunks[col];
+    std::memset(&chunk->buffer + component.offset + component.size * row, 0, component.size);
 }
 
 // =============================================================================
 // Private Functions
 // =============================================================================
 
-void Archetype::_pushBackChunk() {
+void Archetype::_allocateBackChunk() {
     Chunk* chunk = (Chunk*)malloc(sizeof(Chunk) + Chunk::SIZE);
     chunk->index = chunks.size();
     chunk->count = 0;
@@ -305,9 +425,33 @@ void Archetype::_pushBackChunk() {
     chunks.push_back(chunk);
 }
 
-void Archetype::_popBackChunk() {
+void Archetype::_deallocateBackChunk() {
     free(chunks.back());
     chunks.pop_back();
+}
+
+// =============================================================================
+// Inline Function
+// =============================================================================
+
+inline void copyEntityComponetData(
+        const EntityRecord& src,
+        const EntityRecord& dst,
+        bool useDstSig
+) {
+    Archetype* loopArch = src.arch;
+    if (useDstSig)
+        loopArch = dst.arch;
+
+    ComponentMap cmap = loopArch->getComponents();
+    for (const ComponentID id : loopArch->getSignature()) {
+        ComponentRecord c = cmap[id];
+        size_t size = c.size;
+        size_t offset = c.offset;
+        void* srcPtr = src.arch->getBufferLocation(id, src.col, src.row);
+        void* dstPtr = dst.arch->getBufferLocation(id, dst.col, dst.row);
+        std::memcpy(dstPtr, srcPtr, size);
+    }
 }
 
 } // namespace ECS
