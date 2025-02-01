@@ -22,8 +22,8 @@ public:
     void setUniform2f(const GLchar* name, GLfloat v0, GLfloat v1);
     void setUniform3f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2);
     void setUniform4f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
-    void setUniformMatrix4fv(const GLchar* name, GLsizei count, glm::mat4& value);
-    void setUniformBlockBinding(const GLchar* name, GLuint binding);
+    void setUniformMatrix4fv(const GLchar* name, const GLsizei count, const glm::mat4x4& value);
+    void setUniformBlockBinding(const GLchar* name, const GLuint binding);
 
 private:
     void _loadShaderFromFile(GLuint& shader, const char* filepath, GLuint type);
@@ -103,12 +103,12 @@ void Shader::setUniform4f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2
     glUniform4f(location, v0, v1, v2, v3);
 }
 
-void Shader::setUniformMatrix4fv(const GLchar* name, GLsizei count, glm::mat4& value) {
+void Shader::setUniformMatrix4fv(const GLchar* name, const GLsizei count, const glm::mat4x4& value) {
     GLuint location = glGetUniformLocation(program, name);
     glUniformMatrix4fv(location, count, GL_FALSE, glm::value_ptr(value));
 }
 
-void Shader::setUniformBlockBinding(const GLchar* name, GLuint binding) {
+void Shader::setUniformBlockBinding(const GLchar* name, const GLuint binding) {
     GLuint location = glGetUniformBlockIndex(program, name);
     glUniformBlockBinding(program, location, binding);
 }

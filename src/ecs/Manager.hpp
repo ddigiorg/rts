@@ -5,7 +5,6 @@
 #include "ecs/EntityManager.hpp"
 #include "ecs/Archetype.hpp"
 #include "utilities/Assert.hpp"
-#include "utilities/Timer.hpp" // TODO: REMOVE AFTER DEBUGGING
 
 #include <iostream>
 #include <queue>
@@ -24,6 +23,7 @@ public:
 
     // checker functions
     bool hasEntity(const EntityID id);
+    bool hasSingleton(const ComponentID id);
     bool hasComponent(const ComponentID id);
     bool hasSystem(const SystemID id);
     bool hasEvent(EventID id);
@@ -65,10 +65,12 @@ public:
     // bool hasEntityComponent(const EntityID id);
 
     // singleton entity functions
-    // template<typename T>
-    // EntityID createSingleton();
-    // template<typename T>
-    // void removeSingleton();
+    template <typename T>
+    void createSingleton();
+    template <typename T>
+    void removeSingleton();
+    template <typename T>
+    T* getSingletonData();
 
     // query functions
     std::vector<Archetype*>& query(const Signature& all);
@@ -86,13 +88,12 @@ private:
 
     std::unordered_map<Hash, Archetype*> archetypes = {};
     std::unordered_map<Hash, QueryRecord> queries = {};
+    std::unordered_map<ComponentID, EntityID> singletons = {};
 
     std::vector<EntityID> recycledEntityIDs;
     std::queue<EventID> eventQueue;
 
-    Timer timer; // TODO: REMOVE AFTER DEBUGGING
-    // timer.reset();
-    // std::cout << timer.elapsed() << std::endl;
+    size_t numArchetypesBeforeQuery = 0;
 };
 
 // =============================================================================
@@ -122,6 +123,14 @@ Manager::~Manager() {
 
 bool Manager::hasEntity(const EntityID id) {
     return entityManager.hasEntity(id);
+}
+
+bool Manager::hasSingleton(const ComponentID id) {
+    for (const auto& pair : singletons) {
+        if (id == pair.first)
+            return true;
+    }
+    return false;
 }
 
 bool Manager::hasComponent(const ComponentID id) {
@@ -370,28 +379,45 @@ void Manager::delEntityComponent(const EntityID eid) {
 // }
 
 // =============================================================================
-// Singleton Functions
+// Singleton Entity Functions
 // =============================================================================
 
-// template<typename T>
-// EntityID Manager::createSingleton() {
-//     ComponentID cid = getComponentID<T>();
-//     ASSERT(!hasEntity(cid), "Entity already exists: id=" << cid);
-//     ASSERT(hasComponent(cid), "Component does not exist: id=" << cid);
-//     Signature signature{cid};
-//     Archetype* arch = _getOrCreateArchetype(signature);
-//     entities[cid] = arch->insertEntity(cid);
-//     return cid;
-// }
+// TODO: this should only happen on event before update
+template <typename T>
+void Manager::createSingleton() {
+    size_t cid = getComponentID<T>();
+    ASSERT(hasComponent(cid), "Component " << cid << " does not exist.");
+    ASSERT(!hasSingleton(cid), "Singleton " << cid << " already exists.");
+    Signature sig = {cid};
+    Archetype* arch = _getOrCreateArchetype(sig);
+    EntityID eid = entityManager.createEntity();
+    arch->insertEntity(eid);
+    singletons[cid] = eid;
+}
 
-// template<typename T>
-// void Manager::removeSingleton() {
-//     ComponentID cid = getComponentID<T>();
-//     ASSERT(hasEntity(eid), "Entity does not exist: id=" << eid);
-//     ASSERT(hasComponent(cid), "Component does not exist: id=" << cid);
-//     // TODO: archetype of 1 chunk will still perist... delete it?
-//     entities.erase(cid);
-// }
+// TODO: this should only happen on event before update
+template <typename T>
+void Manager::removeSingleton() {
+    size_t cid = getComponentID<T>();
+    ASSERT(hasComponent(cid), "Component " << cid << " does not exist.");
+    ASSERT(hasSingleton(cid), "Singleton " << cid << " does not exist.");
+    Signature sig = {cid};
+    Archetype* arch = _getOrCreateArchetype(sig);
+    EntityID eid = singletons[cid];
+    arch->removeEntity(eid);
+    singletons.erase(cid);
+}
+
+template <typename T>
+T* Manager::getSingletonData() {
+    size_t cid = getComponentID<T>();
+    ASSERT(hasComponent(cid), "Component " << cid << " does not exist.");
+    ASSERT(hasSingleton(cid), "Singleton " << cid << " does not exist.");
+    Signature sig = {cid};
+    Archetype* arch = _getOrCreateArchetype(sig);
+    T* data = arch->getComponentData<T>(0, 0);
+    return data;
+}
 
 // =============================================================================
 // Query Functions
@@ -401,6 +427,10 @@ std::vector<Archetype*>& Manager::query(const Signature& all) {
     Signature allSorted = all;
     std::sort(allSorted.begin(), allSorted.end());
     Hash hash = hashSignature(allSorted);
+
+    // reset queries if new archetypes detected
+    if (archetypes.size() != numArchetypesBeforeQuery)
+        queries.clear();
 
     // if query already exists then return it
     auto it = queries.find(hash);
@@ -416,6 +446,9 @@ std::vector<Archetype*>& Manager::query(const Signature& all) {
         if (archetype->hasComponents(all))
             matchingArchetypes.push_back(archetype);
     }
+
+    numArchetypesBeforeQuery = archetypes.size();
+
     return matchingArchetypes;
 }
 

@@ -1,14 +1,7 @@
-// https://learnopengl.com/In-Practice/Text-graphics
-// signed distance fields (SDFs):
-// - https://www.youtube.com/watch?v=1b5hIMqz_wM
-// - https://www.youtube.com/watch?v=d8cfgcJR9Tk
-// TODO: look into stb_truetype.h:
-// - https://github.com/nothings/stb/blob/master/stb_truetype.h
-// - https://github.com/0xc0dec/demos/blob/master/demos/stb-truetype/gl/Main.cpp
-#ifndef FONT_HPP
-#define FONT_HPP
+// Font.hpp
+#pragma once
 
-#include "graphics/shader.hpp"
+#include "graphics/Shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>
@@ -24,9 +17,15 @@
 #define FONT_PIXEL_PER_POINT ((float)FONT_PIXELS_PER_INCH / (float)FONT_POINTS_PER_INCH)
 #define FONT_GLYPH_PIXEL_HEIGHT 64
 
-#define FONT_VERT_FILEPATH "data/shaders/font_vert.glsl"
-#define FONT_FRAG_FILEPATH "data/shaders/font_frag.glsl"
-#define FONT_MONOTYPE_FILEPATH "data/fonts/CommitMono-400-Regular.otf"
+// https://learnopengl.com/In-Practice/Text-graphics
+// signed distance fields (SDFs):
+// - https://www.youtube.com/watch?v=1b5hIMqz_wM
+// - https://www.youtube.com/watch?v=d8cfgcJR9Tk
+// TODO: look into stb_truetype.h:
+// - https://github.com/nothings/stb/blob/master/stb_truetype.h
+// - https://github.com/0xc0dec/demos/blob/master/demos/stb-truetype/gl/Main.cpp
+
+namespace GFX {
 
 struct Character {
     GLuint texture;
@@ -40,12 +39,12 @@ public:
     Font();
     ~Font();
     void render(
-        std::string& text,
+        const std::string& text,
         float x,
         float y,
         unsigned int pt,
-        glm::vec3& color,
-        glm::mat4x4& projMat
+        const glm::vec3& color,
+        const glm::mat4x4& matrix
     );
 
 private:
@@ -150,14 +149,13 @@ Font::~Font() {
 }
 
 void Font::render(
-        std::string& text,
+        const std::string& text,
         float x,
         float y,
         unsigned int pt,
-        glm::vec3& color,
-        // glm::mat4x4& view,
-        glm::mat4x4& projMat
-    ) {
+        const glm::vec3& color,
+        const glm::mat4x4& matrix
+) {
 
     // calculate scale based on font point size
     // TODO: this scale might not be entirely accurate due to:
@@ -173,14 +171,14 @@ void Font::render(
 
     // activate corresponding render state
     shader.use();
-    shader.setUniformMatrix4fv("projection", 1, projMat);
-    shader.setUniform3f("u_charColor", color.x, color.y, color.z);
-    shader.setUniform1f("u_charWidth", 0.4f);
-    shader.setUniform1f("u_charEdge", 0.2f);
-    shader.setUniform3f("u_borderColor", 0.0f, 0.0f, 0.0f);
-    shader.setUniform2f("u_borderOffset", 0.0f, 0.0f);
-    shader.setUniform1f("u_borderWidth", 0.6f);
-    shader.setUniform1f("u_borderEdge", 0.2f);
+    shader.setUniformMatrix4fv("uMatrix", 1, matrix);
+    shader.setUniform3f("uCharColor", color.x, color.y, color.z);
+    shader.setUniform1f("uCharWidth", 0.4f);
+    shader.setUniform1f("uCharEdge", 0.2f);
+    shader.setUniform3f("uBorderColor", 0.0f, 0.0f, 0.0f);
+    shader.setUniform2f("uBorderOffset", 0.0f, 0.0f);
+    shader.setUniform1f("uBorderWidth", 0.6f);
+    shader.setUniform1f("uBorderEdge", 0.2f);
 
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(vao);
@@ -227,4 +225,4 @@ void Font::render(
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-#endif // FONT_HPP
+} // namespace GFX

@@ -2,11 +2,13 @@
 #pragma once
 
 #include "ecs/Manager.hpp"
-#include "gameplay/components/Position.hpp"
-#include "gameplay/components/Velocity.hpp"
+#include "game/components/Position.hpp"
+#include "game/components/Velocity.hpp"
 
 class Movement : public ECS::System {
 public:
+    Movement() : rng(-5.0f, 5.0f) {};
+
     void run() override {
         std::vector<ECS::Archetype*> archetypes = ecs->query({ECS::typeof(Position), ECS::typeof(Velocity)});
 
@@ -20,8 +22,17 @@ public:
                     // EntityID = archetype->getEntityID(c, i);
                     pos[i].x += vel[i].x;
                     pos[i].y += vel[i].y;
+                    // vel[i].x = rng.get();
+                    // vel[i].y = rng.get();
+
+                    if (pos[i].x <= -400.0f || pos[i].x >= 400.0f)
+                        vel[i].x = -vel[i].x;
+                    if (pos[i].y <= -300.0f || pos[i].y >= 300.0f)
+                        vel[i].y = -vel[i].y;
                 }
             }
         }
     }
+private:
+    RandomFloatGenerator rng;
 };

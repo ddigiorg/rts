@@ -4,6 +4,7 @@
 #include "core/Types.hpp"
 #include "graphics/DebugMessageCallback.hpp"
 
+#define SDL_MAIN_HANDLED  // Prevent SDL from redefining main()
 #include <SDL.h>
 #include <GL/glew.h>
 
@@ -11,18 +12,15 @@
 
 namespace Core {
 
-// TODO: move OpenGL functionality to graphics since that's where it belongs
+// TODO: move any OpenGL functionality to graphics since that's where it belongs?
 
 class SDLManager {
 public:
     SDLManager();
     ~SDLManager();
-    void resize();
     void clear();
     void swap();
-    GameEvents processEvents();
-
-    SDL_Window* getWindow() const { return window; };
+    void SDLManager::processEvents(EventState& events);
 
 private:
     SDL_Window* window = nullptr;
@@ -115,13 +113,6 @@ SDLManager::~SDLManager() {
 //     std::cout << "GLSL Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 // }
 
-void SDLManager::resize() {
-    int width = NULL;
-    int height = NULL;
-    SDL_GetWindowSize(window, &width, &height);
-    glViewport(0, 0, width, height);
-}
-
 void SDLManager::clear() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
@@ -130,32 +121,85 @@ void SDLManager::swap() {
     SDL_GL_SwapWindow(window);
 }
 
-GameEvents SDLManager::processEvents() {
-    GameEvents result;
-    SDL_Event e;
-    while(SDL_PollEvent(&e)) {
+void SDLManager::processEvents(EventState& events) {
+    SDL_Event event;
 
-        if(e.type == SDL_WINDOWEVENT) {
-            switch(e.window.event) {
-                case SDL_WINDOWEVENT_SIZE_CHANGED: {
-                    resize();
-                    result.windowResize = true;
-                    break;
-                }
+    // reset per-frame flags
+    events.window.resized = false;
+    events.mouse.moved = false;
+    events.mouse.leftReleased = false;
+    events.mouse.rightReleased = false;
+    events.mouse.middleReleased = false;
+    events.keyboard.tildeReleased = false;
+
+    // poll for SDL events
+    while(SDL_PollEvent(&event)) {
+
+        // handle mouse motion event
+        if (event.type == SDL_MOUSEMOTION) {
+            events.mouse.posScreenX = event.motion.x;
+            events.mouse.posScreenY = event.motion.y;
+            events.mouse.moved = true;
+        }
+
+        // handle mouse down event
+        if (event.type == SDL_MOUSEBUTTONDOWN) {
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                events.mouse.leftPressed = true;
+            }
+            if (event.button.button == SDL_BUTTON_RIGHT) {
+                events.mouse.rightPressed = true;
+            }
+            if (event.button.button == SDL_BUTTON_MIDDLE) {
+                events.mouse.middlePressed = true;
+            }       
+        }
+
+        // handle mouse up event
+        if (event.type == SDL_MOUSEBUTTONUP) {
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                events.mouse.leftPressed = false;
+                events.mouse.leftReleased = true;
+            }
+            if (event.button.button == SDL_BUTTON_RIGHT) {
+                events.mouse.rightPressed = false;
+                events.mouse.rightReleased = true;
+            }
+            if (event.button.button == SDL_BUTTON_MIDDLE) {
+                events.mouse.middlePressed = false;
+                events.mouse.middleReleased = true;
             }
         }
 
-        if (e.type == SDL_KEYDOWN) {
-            if (e.key.keysym.sym == SDLK_ESCAPE)
-                result.quit = true;
+        // key down events
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.sym == SDLK_ESCAPE)
+                events.quit = true;
+            if (event.key.keysym.sym == SDLK_BACKQUOTE)
+                events.keyboard.tildePressed = true;
         }
 
-        if (e.type == SDL_QUIT) {
-            result.quit = true;
+        // key up events
+        if (event.type == SDL_KEYUP) {
+            if (event.key.keysym.sym == SDLK_BACKQUOTE)
+                events.keyboard.tildePressed = false;
+                events.keyboard.tildeReleased = true;
+        }
+
+        // window events
+        if(event.type == SDL_WINDOWEVENT) {
+            if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                SDL_GetWindowSize(window, &events.window.width, &events.window.height);
+                glViewport(0, 0, events.window.width, events.window.height);
+                events.window.resized = true;
+            }
+        }
+
+        // quit event
+        if (event.type == SDL_QUIT) {
+            events.quit = true;
         }
     }
-
-    return result;
 }
 
 } // namespace Core
