@@ -1,8 +1,7 @@
-// SDLManager.hpp
 #pragma once
 
-#include "core/Types.hpp"
-#include "graphics/DebugMessageCallback.hpp"
+#include "core/types.hpp"
+#include "graphics/debug_message_callback.hpp"
 
 #define SDL_MAIN_HANDLED  // Prevent SDL from redefining main()
 #include <SDL.h>

@@ -1,4 +1,3 @@
-// Types.hpp
 #pragma once
 
 namespace GFX {

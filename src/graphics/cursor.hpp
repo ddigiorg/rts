@@ -1,9 +1,8 @@
-// Cursor.hpp
 #pragma once
 
-#include "Types.hpp"
-#include "graphics/Camera.hpp"
-#include "graphics/Shader.hpp"
+#include "types.hpp"
+#include "graphics/camera.hpp"
+#include "graphics/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>

@@ -1,7 +1,6 @@
-// Camera.hpp
 #pragma once
 
-#include "core/Types.hpp"
+#include "core/types.hpp"
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>

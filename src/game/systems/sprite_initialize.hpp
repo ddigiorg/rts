@@ -1,12 +1,11 @@
-// SpriteInitialize.hpp
 #pragma once
 
-#include "ecs/Manager.hpp"
-#include "game/components/Position.hpp"
-#include "game/components/Velocity.hpp"
-#include "game/components/Size.hpp"
-#include "game/components/Color.hpp"
-#include "utilities/Random.hpp"
+#include "ecs/manager.hpp"
+#include "game/components/position.hpp"
+#include "game/components/velocity.hpp"
+#include "game/components/size.hpp"
+#include "game/components/color.hpp"
+#include "utilities/random.hpp"
 
 class SpriteInitialize : public ECS::System {
 public:

@@ -1,4 +1,3 @@
-// Assert.hpp
 #pragma once
 
 #include <iostream>

@@ -1,7 +1,6 @@
-// Shader.hpp
 #pragma once
 
-#include "utilities/File.hpp"
+#include "utilities/file.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec3.hpp>

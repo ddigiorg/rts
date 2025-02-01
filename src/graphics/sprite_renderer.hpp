@@ -1,9 +1,8 @@
-// SpriteRenderer.hpp
 #pragma once
 
-#include "graphics/Types.hpp"
-#include "graphics/Camera.hpp"
-#include "graphics/Shader.hpp"
+#include "graphics/types.hpp"
+#include "graphics/camera.hpp"
+#include "graphics/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/mat4x4.hpp>

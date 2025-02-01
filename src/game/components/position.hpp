@@ -1,7 +1,6 @@
-// Position.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
+#include "ecs/types.hpp"
 
 struct Position : ECS::Component {
     float x, y;

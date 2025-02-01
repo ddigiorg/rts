@@ -1,10 +1,9 @@
-// Manager.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
-#include "ecs/EntityManager.hpp"
-#include "ecs/Archetype.hpp"
-#include "utilities/Assert.hpp"
+#include "ecs/types.hpp"
+#include "ecs/entity_manager.hpp"
+#include "ecs/archetype.hpp"
+#include "utilities/assert.hpp"
 
 #include <iostream>
 #include <queue>

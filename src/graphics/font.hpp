@@ -1,7 +1,6 @@
-// Font.hpp
 #pragma once
 
-#include "graphics/Shader.hpp"
+#include "graphics/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>

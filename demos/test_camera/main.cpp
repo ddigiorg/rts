@@ -1,5 +1,5 @@
-#include "core/SDLManager.hpp"
-#include "graphics/Camera.hpp"
+#include "core/sdl_manager.hpp"
+#include "graphics/camera.hpp"
 
 #include <iostream>
 

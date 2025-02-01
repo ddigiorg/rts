@@ -1,4 +1,3 @@
-// Random.hpp
 #pragma once
 
 #include <random>

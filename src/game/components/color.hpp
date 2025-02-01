@@ -1,7 +1,6 @@
-// Color.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
+#include "ecs/types.hpp"
 
 struct Color : ECS::Component {
     float r, g, b;

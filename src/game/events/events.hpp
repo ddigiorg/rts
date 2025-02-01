@@ -1,7 +1,6 @@
-// Events.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
+#include "ecs/types.hpp"
 
 struct OnCreate : ECS::Event {};
 struct OnDestroy : ECS::Event {};

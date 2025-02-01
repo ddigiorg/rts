@@ -1,8 +1,7 @@
-// EntityManager.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
-#include "utilities/Assert.hpp"
+#include "ecs/types.hpp"
+#include "utilities/assert.hpp"
 
 #include <vector>
 

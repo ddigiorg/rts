@@ -1,4 +1,3 @@
-// Timer.hpp
 #pragma once
 
 #include <iostream>

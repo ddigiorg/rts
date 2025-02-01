@@ -1,10 +1,8 @@
-// Archetype.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
-#include "ecs/EntityManager.hpp"
-#include "utilities/Assert.hpp"
-#include "utilities/Timer.hpp" // TODO: REMOVE AFTER DEBUGGING
+#include "ecs/types.hpp"
+#include "ecs/entity_manager.hpp"
+#include "utilities/assert.hpp"
 
 #include <vector>
 #include <unordered_map>
@@ -97,10 +95,6 @@ private:
     ComponentMap components;
     std::unordered_map<ComponentID, ArchetypeGraphNode> nodes;
     EntityManager* entityManager;
-
-    Timer timer; // TODO: REMOVE AFTER DEBUGGING
-    // timer.reset();
-    // std::cout << timer.elapsed() << std::endl;
 };
 
 // =============================================================================

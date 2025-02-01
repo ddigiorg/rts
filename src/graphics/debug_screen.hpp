@@ -1,9 +1,8 @@
-// DebugScreen.hpp
 #pragma once
 
-#include "core/Types.hpp"
-#include "graphics/Camera.hpp"
-#include "graphics/Font.hpp"
+#include "core/types.hpp"
+#include "graphics/camera.hpp"
+#include "graphics/font.hpp"
 
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"

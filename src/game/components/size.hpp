@@ -1,7 +1,6 @@
-// Size.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
+#include "ecs/types.hpp"
 
 struct Size : ECS::Component {
     float size;

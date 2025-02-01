@@ -1,10 +1,9 @@
-// Global.hpp
 #pragma once
 
-#include "ecs/Types.hpp"
-#include "graphics/Camera.hpp"
-#include "graphics/Cursor.hpp"
-#include "graphics/SpriteRenderer.hpp"
+#include "ecs/types.hpp"
+#include "graphics/camera.hpp"
+#include "graphics/cursor.hpp"
+#include "graphics/sprite_renderer.hpp"
 
 struct Global : ECS::Component {
     GFX::Camera* camera;

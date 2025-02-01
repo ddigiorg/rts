@@ -1,9 +1,8 @@
-// Movement.hpp
 #pragma once
 
-#include "ecs/Manager.hpp"
-#include "game/components/Position.hpp"
-#include "game/components/Velocity.hpp"
+#include "ecs/manager.hpp"
+#include "game/components/position.hpp"
+#include "game/components/velocity.hpp"
 
 class Movement : public ECS::System {
 public:
