@@ -4,7 +4,7 @@
 #include "graphics/debug_message_callback.hpp"
 
 #define SDL_MAIN_HANDLED  // Prevent SDL from redefining main()
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <GL/glew.h>
 
 #include <iostream>
@@ -29,14 +29,15 @@ private:
 };
 
 SDLManager::SDLManager() {
+    bool success = false;
 
     // initialize SDL
-    int error = SDL_Init(SDL_INIT_VIDEO);
-    if(error) {
+    success = SDL_Init(SDL_INIT_VIDEO);
+    if(!success) {
         // TODO: need better error handling and logging
         std::cout << "Error: SDL_Init() failed:" << std::endl;
         std::cout << SDL_GetError() << std::endl;
-        exit(1);
+        exit(1); // TODO: should probably return or throw an error instead
     }
 
     // setup opengl attributes before window creation
@@ -49,8 +50,6 @@ SDLManager::SDLManager() {
     // setup SDL window
     window = SDL_CreateWindow(
         DEFAULT_WINDOW_TITLE,
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
         DEFAULT_WINDOW_WIDTH,
         DEFAULT_WINDOW_HEIGHT,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
@@ -58,22 +57,27 @@ SDLManager::SDLManager() {
     if(window == nullptr) {
         std::cout << "Error: SDL_CreateWindow() failed:" << std::endl;
         std::cout << SDL_GetError() << std::endl;
-        exit(1);
+        exit(1); // TODO: should probably return or throw an error instead
     }
 
     // set window minimum size
-    SDL_SetWindowMinimumSize(
+    success = SDL_SetWindowMinimumSize(
         window,
         DEFAULT_MIN_WINDOW_WIDTH,
         DEFAULT_MIN_WINDOW_HEIGHT
     );
+    if(!success) {
+        std::cout << "SDL_SetWindowMinimumSize: SDL_Init() failed:" << std::endl;
+        std::cout << SDL_GetError() << std::endl;
+        exit(1); // TODO: should probably return or throw an error instead
+    }
 
     // setup OpenGL graphics context
     context = SDL_GL_CreateContext(window);
     if (context == nullptr) {
         std::cout << "Error: SDL_GL_CreateContext() failed:" << std::endl;
         std::cout << SDL_GetError() << std::endl;
-        exit(1);
+        exit(1); // TODO: should probably return or throw an error instead
     }
 
     // setup GLEW
@@ -101,7 +105,8 @@ SDLManager::~SDLManager() {
         SDL_DestroyWindow(window);
 
     if (context)
-        SDL_GL_DeleteContext(context);
+        // SDL_GL_DeleteContext(context);
+        SDL_GL_DestroyContext(context);
 
     if(SDL_WasInit(SDL_INIT_VIDEO) != 0)
         SDL_Quit();
@@ -125,64 +130,77 @@ void SDLManager::swap() {
 const FrameInput& SDLManager::processEvents() {
     SDL_Event event;
 
-    // reset the mouse button states
-    for (auto& pair : input.mouse.buttons)
-        pair.second = {false, false};
+    // // reset the mouse button states
+    // for (auto& pair : input.mouse.buttons)
+    //     pair.second = {false, false};
 
-    // reset the keyboard button states
-    for (auto& pair : input.keyboard.buttons)
-        pair.second = {false, false};
+    // // reset the keyboard button states
+    // for (auto& pair : input.keyboard.buttons)
+    //     pair.second = {false, false};
 
     // poll for SDL events
     while(SDL_PollEvent(&event)) {
 
-        // handle mouse motion event
-        if (event.type == SDL_MOUSEMOTION) {
-            input.mouse.moved = true;
-            input.mouse.x = event.motion.x;
-            input.mouse.y = event.motion.y;
-        }
+        // // handle mouse motion event
+        // if (event.type == SDL_MOUSEMOTION) {
+        //     input.mouse.moved = true;
+        //     input.mouse.x = event.motion.x;
+        //     input.mouse.y = event.motion.y;
+        // }
 
-        // handle mouse down event
-        if (event.type == SDL_MOUSEBUTTONDOWN) {
-            Uint8 b = event.button.button;
-            input.mouse.buttons[b].pressed = true;
-        }
+        // // handle mouse down event
+        // if (event.type == SDL_MOUSEBUTTONDOWN) {
+        //     Uint8 b = event.button.button;
+        //     input.mouse.buttons[b].pressed = true;
+        // }
 
-        // handle mouse mouse up event
-        if (event.type == SDL_MOUSEBUTTONUP) {
-            Uint8 b = event.button.button;
-            input.mouse.buttons[b].pressed = false;
-            input.mouse.buttons[b].released = true;
-        }
+        // // handle mouse mouse up event
+        // if (event.type == SDL_MOUSEBUTTONUP) {
+        //     Uint8 b = event.button.button;
+        //     input.mouse.buttons[b].pressed = false;
+        //     input.mouse.buttons[b].released = true;
+        // }
 
-        // key down events
-        if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-            SDL_Keycode b = event.key.keysym.sym;
-            input.keyboard.buttons[b].pressed = true;
-        }
+        // // key down events
+        // if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+        //     SDL_Keycode b = event.key.keysym.sym;
+        //     input.keyboard.buttons[b].pressed = true;
+        // }
 
-        // key up events
-        if (event.type == SDL_KEYUP) {
-            SDL_Keycode b = event.key.keysym.sym;
-            input.keyboard.buttons[b].pressed = false;
-            input.keyboard.buttons[b].released = true;
-        }
+        // // key up events
+        // if (event.type == SDL_KEYUP) {
+        //     SDL_Keycode b = event.key.keysym.sym;
+        //     input.keyboard.buttons[b].pressed = false;
+        //     input.keyboard.buttons[b].released = true;
+        // }
 
-        // window events
-        if(event.type == SDL_WINDOWEVENT) {
-            if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                SDL_GetWindowSize(window, &input.window.width, &input.window.height);
-                glViewport(0, 0, input.window.width, input.window.height);
-                input.window.resized = true;
-            }
-        }
+        // // window events
+        // if(event.type == SDL_WINDOWEVENT) {
+        //     if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+        //         SDL_GetWindowSize(window, &input.window.width, &input.window.height);
+        //         glViewport(0, 0, input.window.width, input.window.height);
+        //         input.window.resized = true;
+        //     }
+        // }
 
         // quit event
-        if (event.type == SDL_QUIT) {
+        // if (event.type == SDL_QUIT) {
+        if (event.type == SDL_EVENT_QUIT) {
             input.quit = true;
         }
     }
+
+    // int numkeys = 0;
+    // const Uint8* currentKeyStates = SDL_GetKeyboardState(&numkeys);
+    // // std::cout << numkeys << std::endl;
+
+    // if(currentKeyStates[SDL_SCANCODE_LSHIFT])
+    //     std::cout << "shift" << std::endl;
+
+    // if(currentKeyStates[SDL_SCANCODE_A])
+    //     std::cout << "a" << std::endl;
+    
+
 
     return input;
 }

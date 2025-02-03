@@ -6,7 +6,8 @@ find_package(Freetype REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(SDL2 REQUIRED)
+# find_package(SDL2 REQUIRED)
+find_package(SDL3 REQUIRED)
 
 # include directories
 target_include_directories(engine INTERFACE
@@ -23,5 +24,5 @@ target_link_libraries(engine INTERFACE
     GLEW::GLEW
     glm::glm
     OpenGL::GL
-    SDL2::SDL2
+    SDL3::SDL3
 )

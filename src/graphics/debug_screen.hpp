@@ -42,9 +42,9 @@ private:
 };
 
 void DebugScreen::handleEvents(const Core::FrameInput& input) {
-    if (input.keyboard.buttons.at(SDLK_BACKQUOTE).pressed) {
-        isVisible = !isVisible;
-    }
+    // if (input.keyboard.buttons.at(SDLK_BACKQUOTE).pressed) {
+    //     isVisible = !isVisible;
+    // }
 }
 
 void DebugScreen::update(const DebugData& data) {

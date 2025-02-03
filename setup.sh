@@ -114,7 +114,8 @@ mkdir -p "$DEPENDENCIES_SOURCE_PATH"
 freetype_url="https://download.savannah.gnu.org/releases/freetype/freetype-2.13.3.tar.gz"
 glew_url="https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.zip"
 glm_url="https://github.com/g-truc/glm/archive/refs/tags/1.0.1.zip"
-sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-2.30.12/SDL2-2.30.12.zip"
+# sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-2.30.12/SDL2-2.30.12.zip"
+sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-3.2.2/SDL3-3.2.2.zip"
 stb_url="https://github.com/nothings/stb.git"
 
 # download
