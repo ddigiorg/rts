@@ -1,43 +1,42 @@
 #pragma once
 
+#include <unordered_map>
+
 namespace Core {
 
 constexpr char* DEFAULT_WINDOW_TITLE = "Game";
-constexpr unsigned int DEFAULT_WINDOW_WIDTH = 800;
-constexpr unsigned int DEFAULT_WINDOW_HEIGHT = 600;
-constexpr unsigned int DEFAULT_MIN_WINDOW_WIDTH = 320;
-constexpr unsigned int DEFAULT_MIN_WINDOW_HEIGHT = 200;
+constexpr int DEFAULT_WINDOW_WIDTH = 800;
+constexpr int DEFAULT_WINDOW_HEIGHT = 600;
+constexpr int DEFAULT_MIN_WINDOW_WIDTH = 320;
+constexpr int DEFAULT_MIN_WINDOW_HEIGHT = 200;
 
-struct WindowState {
+struct ButtonState {
+    bool pressed = false;
+    bool released = false;
+};
+
+struct WindowInput {
     bool resized = false;
     int width = DEFAULT_WINDOW_WIDTH;
     int height = DEFAULT_WINDOW_HEIGHT;
 };
 
-struct MouseState {
-    int posScreenX = 0;
-    int posScreenY = 0;
-    float posWorldX = 0.0f;
-    float posWorldY = 0.0f;
+struct MouseInput {
     bool moved = false;
-    bool leftPressed = false;
-    bool leftReleased = false;
-    bool rightPressed = false;
-    bool rightReleased = false;
-    bool middlePressed = false;
-    bool middleReleased = false;
+    int x = 0;
+    int y = 0;
+    std::unordered_map<unsigned int, ButtonState> buttons;
 };
 
-struct KeyboardState {
-    bool tildePressed = false;
-    bool tildeReleased = false;
+struct KeyboardInput {
+    std::unordered_map<unsigned int, ButtonState> buttons;
 };
 
-struct EventState {
+struct FrameInput {
     bool quit = false;
-    WindowState window;
-    MouseState mouse;
-    KeyboardState keyboard;
+    WindowInput window;
+    MouseInput mouse;
+    KeyboardInput keyboard;
 };
 
 } // namespace Core

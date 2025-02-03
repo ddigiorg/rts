@@ -1,6 +1,7 @@
 #pragma once
 
-#include "types.hpp"
+#include "core/types.hpp"
+#include "graphics/types.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
 
@@ -14,7 +15,7 @@ class Cursor {
 public:
     Cursor();
     ~Cursor();
-    void handleEvents(const Core::EventState events);
+    void handleEvents(const Core::FrameInput& input, const glm::vec2& mousePosWorld);
     void startSelection(float x, float y);
     void updateSelection(float x, float y);
     void endSelection();
@@ -41,8 +42,8 @@ private:
 };
 
 Cursor::Cursor()
-    : selectShader(CURSOR_SELECT_VERT_FILEPATH, CURSOR_SELECT_FRAG_FILEPATH) {
-
+    : selectShader(CURSOR_SELECT_VERT_FILEPATH, CURSOR_SELECT_FRAG_FILEPATH)
+{
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
@@ -64,19 +65,19 @@ Cursor::~Cursor() {
     if (VBO) glDeleteBuffers(1, &VBO);
 }
 
-void Cursor::handleEvents(const Core::EventState events) {
+void Cursor::handleEvents(const Core::FrameInput& input, const glm::vec2& mousePosWorld) {
 
-        if (events.mouse.leftPressed) {
-            startSelection(events.mouse.posWorldX, events.mouse.posWorldY);
+        if (input.mouse.buttons.at(1).pressed) {
+            startSelection(mousePosWorld.x, mousePosWorld.y);
         }
 
-        if (events.mouse.moved) {
-            updateSelection(events.mouse.posWorldX, events.mouse.posWorldY);
-        }
+        // if (input.mouse.moved) {
+        //     updateSelection(mousePosWorld.x, mousePosWorld.y);
+        // }
 
-        if (events.mouse.leftReleased) {
-            endSelection();
-        }
+        // if (input.mouse.buttons.at(1).released) {
+        //     endSelection();
+        // }
 }
 
 void Cursor::startSelection(float x, float y) {

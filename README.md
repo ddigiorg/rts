@@ -12,23 +12,16 @@ An open-world real time strategy game.
    - Windows: [MSVC](https://visualstudio.microsoft.com/vs/)
    - MacOS: [Clang](https://clang.llvm.org/)
 
-## Installation
+## Install
 
-NOTE: If you are on Windows you must use `Git Bash` or `wsl` to use the build tools located in `tools/`.
-
-NOTE: You will need to edit the opengl paths in `tools/source-env.sh` before proceeding.
+NOTE: If you are on Windows you must use `Git Bash` or `wsl` to run `setup.sh`.
 
 ```bash
-# source environment
-. tools/1-source-env.sh
-
-# get dependencies and compile game
-./tools/2-download-dependencies.sh
-./tools/3-build-dependencies.sh
-./tools/4-build-game.sh
-
-# run executable
-./build/demos/Debug/game-2025-01-31.exe
+./setup.sh
 ```
 
-TODO: Make the build process more robust for linux, windows, and macos.
+## Run Demos
+
+```bash
+./run.sh ./build/demos/bin/Debug/game_2025_01_31.exe
+```

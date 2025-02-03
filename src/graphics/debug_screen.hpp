@@ -28,7 +28,7 @@ namespace GFX {
 
 class DebugScreen {
 public:
-    void handleEvents(const Core::EventState& events);
+    void handleEvents(const Core::FrameInput& input);
     void update(const DebugData& data);
     void render(Camera& camera);
 
@@ -41,8 +41,8 @@ private:
     Font font;
 };
 
-void DebugScreen::handleEvents(const Core::EventState& events) {
-    if (events.keyboard.tildeReleased) {
+void DebugScreen::handleEvents(const Core::FrameInput& input) {
+    if (input.keyboard.buttons.at(SDLK_BACKQUOTE).pressed) {
         isVisible = !isVisible;
     }
 }

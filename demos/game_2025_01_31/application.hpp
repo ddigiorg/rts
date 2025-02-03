@@ -16,7 +16,7 @@
 #include "graphics/camera.hpp"
 #include "graphics/cursor.hpp"
 #include "graphics/debug_screen.hpp"
-#include "graphics/sprite_renderer.hpp"
+#include "graphics/quad_renderer.hpp"
 #include "utilities/timer.hpp"
 
 #include <iostream>
@@ -31,12 +31,11 @@ public:
 
 private:
     Core::SDLManager sdl;
-    Core::EventState events;
 
     GFX::Camera camera;
     GFX::Cursor cursor;
     GFX::DebugScreen debugScreen;
-    GFX::SpriteRenderer spriteRenderer;
+    GFX::QuadRenderer quadRenderer;
 
     ECS::Manager ecs;
 
@@ -47,7 +46,8 @@ Application::Application()
     : sdl(),
       camera(),
       cursor(),
-      spriteRenderer(2048)
+      debugScreen(),
+      quadRenderer(2048)
 {
     std::cout << "initializing..." << std::endl;
 
@@ -81,7 +81,7 @@ Application::Application()
     auto global = ecs.getSingletonData<Global>();
     global->camera = &camera;
     global->cursor = &cursor;
-    global->spriteRenderer = &spriteRenderer;
+    global->quadRenderer = &quadRenderer;
 
     // setup entities
     for (size_t i = 0; i < 1000; i++) {
@@ -108,50 +108,51 @@ void Application::loop() {
     std::cout << "looping..." << std::endl;
 
     size_t frameCount = 0;
+    glm::vec2 mousePosWorld = {0.0f, 0.0f};
 
-    while (!events.quit) {
+    bool quit = false;
+    while (!quit) {
         timer.reset();
 
         // process events
-        sdl.processEvents(events);
+        Core::FrameInput input = sdl.processEvents();
+        quit = input.quit;
 
-        if (events.mouse.moved) {
-            glm::vec2 mousePosWorld = camera.screenToWorld(
-                events.mouse.posScreenX,
-                events.mouse.posScreenY,
-                events.window.width,
-                events.window.height
+        if (input.mouse.moved) {
+            mousePosWorld = camera.screenToWorld(
+                input.mouse.x,
+                input.mouse.y,
+                input.window.width,
+                input.window.height
             );
-            events.mouse.posWorldX = mousePosWorld.x;
-            events.mouse.posWorldY = mousePosWorld.y;
         }
 
-        camera.handleEvents(events);
-        cursor.handleEvents(events);
-        debugScreen.handleEvents(events);
+        camera.handleEvents(input);
+        cursor.handleEvents(input, mousePosWorld);
+        // debugScreen.handleEvents(input);
 
-        // update data   
-        camera.update();
+        // // update data   
+        // camera.update();
 
-        glm::vec3 cameraPos = camera.getPosition();
-        debugScreen.update(DebugData{
-            0, // fps
-            (int)cameraPos.x,
-            (int)cameraPos.y,
-            (int)events.mouse.posScreenX,
-            (int)events.mouse.posScreenY,
-            (int)events.mouse.posWorldX,
-            (int)events.mouse.posWorldX,
-        });
+        // glm::vec3 cameraPos = camera.getPosition();
+        // debugScreen.update(DebugData{
+        //     0, // fps
+        //     (int)cameraPos.x,
+        //     (int)cameraPos.y,
+        //     (int)input.mouse.x,
+        //     (int)input.mouse.y,
+        //     (int)mousePosWorld.x,
+        //     (int)mousePosWorld.y,
+        // });
 
-        ecs.triggerEvent<OnUpdate>();
+        // ecs.triggerEvent<OnUpdate>();
 
-        // render
-        sdl.clear();
-        spriteRenderer.render(camera);
-        cursor.render(camera);
-        debugScreen.render(camera);
-        sdl.swap();
+        // // render
+        // sdl.clear();
+        // quadRenderer.render(camera);
+        // cursor.render(camera);
+        // debugScreen.render(camera);
+        // sdl.swap();
 
         // frameCount++;
         // std::cout << timer.elapsed() << std::endl;

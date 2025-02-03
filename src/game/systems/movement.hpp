@@ -3,6 +3,7 @@
 #include "ecs/manager.hpp"
 #include "game/components/position.hpp"
 #include "game/components/velocity.hpp"
+#include "utilities/random.hpp"
 
 class Movement : public ECS::System {
 public:

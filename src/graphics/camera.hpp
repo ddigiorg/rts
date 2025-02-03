@@ -10,10 +10,17 @@
 
 namespace GFX {
 
+struct CameraInput {
+    glm::vec2 movement;
+    bool resize;
+    int resizeWidth;
+    int resizeHeight;
+};
+
 class Camera {
 public:
     Camera();
-    void handleEvents(const Core::EventState& events);
+    void handleEvents(const Core::FrameInput& input);
     void resize(int width, int height);
     void update();
 
@@ -61,9 +68,9 @@ Camera::Camera() {
     resize(Core::DEFAULT_WINDOW_WIDTH, Core::DEFAULT_WINDOW_HEIGHT);
 }
 
-void Camera::handleEvents(const Core::EventState& events) {
-    if (events.window.resized) {
-        resize(events.window.width, events.window.height);
+void Camera::handleEvents(const Core::FrameInput& input) {
+    if (input.window.resized) {
+        resize(input.window.width, input.window.height);
     }
 }
 
@@ -79,6 +86,14 @@ void Camera::resize(int width, int height) {
 }
 
 void Camera::update() {
+
+    // // handle movement
+    // position += event.movement * speed;
+
+    // // handle resizing
+    // if (event.resize)
+    //     resize(event.resizeWidth, event.resizeHeight);
+
     vpMat = pMat * vMat;
 }
 

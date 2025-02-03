@@ -1,6 +1,6 @@
 #version 460 core
 layout(location = 0) in vec2  aPos;    // quad vertex positions
-layout(location = 1) in vec2  aOffset; // per-instance offsets (sprite positions)
+layout(location = 1) in vec2  aOffset; // per-instance offsets (positions)
 layout(location = 2) in float aSize;   // per-instance sizes
 layout(location = 3) in vec3  aColor;  // Per-instance colors
 

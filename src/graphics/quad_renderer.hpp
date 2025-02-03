@@ -11,10 +11,10 @@ namespace GFX {
 
 // TODO: need to dynamically grow or shrink buffers depending on 2x the count
 
-class SpriteRenderer {
+class QuadRenderer {
 public:
-    SpriteRenderer(size_t capacity);
-    ~SpriteRenderer();
+    QuadRenderer(size_t capacity);
+    ~QuadRenderer();
     void append(
         size_t count,
         const void* positionData,
@@ -41,7 +41,7 @@ private:
 };
 
 // NOTE: if vertices changes then glVertexAttribPointer parameter 5 will need to change
-GLfloat SpriteRenderer::vertices[] = {
+GLfloat QuadRenderer::vertices[] = {
     // positions    texcoords
     -0.5f, -0.5f,   //0.0f, 0.0f, // bottom left
      0.5f, -0.5f,   //1.0f, 0.0f, // bottom right
@@ -49,13 +49,13 @@ GLfloat SpriteRenderer::vertices[] = {
     -0.5f,  0.5f,   //0.0f, 1.0f  // top left
 };
 
-GLuint SpriteRenderer::indices[] = {
+GLuint QuadRenderer::indices[] = {
     0, 1, 2, // first triangle
     2, 3, 0  // second triangle
 };
 
-SpriteRenderer::SpriteRenderer(size_t capacity)
-    : shader(SPRITE_VERT_FILEPATH, SPRITE_FRAG_FILEPATH)
+QuadRenderer::QuadRenderer(size_t capacity)
+    : shader(QUAD_VERT_FILEPATH, QUAD_FRAG_FILEPATH)
 {
     this->capacity = capacity;
 
@@ -106,7 +106,7 @@ SpriteRenderer::SpriteRenderer(size_t capacity)
     glBindVertexArray(0);
 }
 
-SpriteRenderer::~SpriteRenderer() {
+QuadRenderer::~QuadRenderer() {
     if (VAO) glDeleteVertexArrays(1, &VAO);
     if (VBO) glDeleteBuffers(1, &VBO);
     if (EBO) glDeleteBuffers(1, &EBO);
@@ -115,7 +115,7 @@ SpriteRenderer::~SpriteRenderer() {
     if (colorVBO) glDeleteBuffers(1, &colorVBO);
 }
 
-void SpriteRenderer::append(
+void QuadRenderer::append(
         size_t count,
         const void* positionData,
         const void* sizeData,
@@ -123,6 +123,7 @@ void SpriteRenderer::append(
 ) {
     // assert(this->count + count <= capacity);
 
+    // TODO: make offset a function parameter
     size_t offset = this->count * 2 * sizeof(float);
 
     // update sprite positions
@@ -141,7 +142,7 @@ void SpriteRenderer::append(
     this->count += count;
 }
 
-void SpriteRenderer::render(Camera& camera) {
+void QuadRenderer::render(Camera& camera) {
     if (count == 0)
         return;
 
