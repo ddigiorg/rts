@@ -3,6 +3,7 @@
 #include "graphics/types.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
+#include "utilities/assert.hpp"
 
 #include <GL/glew.h>
 #include <glm/mat4x4.hpp>
@@ -15,8 +16,9 @@ class QuadRenderer {
 public:
     QuadRenderer(size_t capacity);
     ~QuadRenderer();
+    void clear() { count = 0; };
     void append(
-        size_t count,
+        size_t amount,
         const void* positionData,
         const void* sizeData,
         const void* colorData
@@ -116,30 +118,32 @@ QuadRenderer::~QuadRenderer() {
 }
 
 void QuadRenderer::append(
-        size_t count,
+        size_t amount,
         const void* positionData,
         const void* sizeData,
         const void* colorData
 ) {
-    // assert(this->count + count <= capacity);
+    ASSERT(count + amount <= capacity, "Out of bounds.");
 
-    // TODO: make offset a function parameter
-    size_t offset = this->count * 2 * sizeof(float);
+    size_t offset = count * 2 * sizeof(float);
+    size_t positionSize = amount * 2 * sizeof(float);
+    size_t sizeSize = amount * sizeof(float);
+    size_t colorSize = amount * 3 * sizeof(float);
 
     // update sprite positions
     glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, offset, count * 2 * sizeof(float), positionData);
+    glBufferSubData(GL_ARRAY_BUFFER, offset, positionSize, positionData);
 
     // update sprite sizes
     glBindBuffer(GL_ARRAY_BUFFER, sizeVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, offset, count * sizeof(float), sizeData);
+    glBufferSubData(GL_ARRAY_BUFFER, offset, sizeSize, sizeData);
 
     // update sprite colors
     glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, offset, count * 3 * sizeof(float), colorData);
+    glBufferSubData(GL_ARRAY_BUFFER, offset, colorSize, colorData);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    this->count += count;
+    this->count += amount;
 }
 
 void QuadRenderer::render(Camera& camera) {
@@ -154,8 +158,6 @@ void QuadRenderer::render(Camera& camera) {
     glBindVertexArray(VAO);
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)count);
     glBindVertexArray(0);
-
-    count = 0;
 }
 
 } // namespace GFX

@@ -2,66 +2,58 @@
 
 #include <iostream>
 
-int main( int argc, char* args[] ) {
+int main() {
     Core::SDLManager sdl;
 
+    // loop
     bool quit = false;
     while (!quit) {
-        Core::FrameInput input = sdl.processEvents();
-        quit = input.quit;
 
-        // // mouse buttons
-        // if (input.mouse.buttons[1].pressed)
-        //     std::cout << "Mouse button 1 pressed." << std::endl;
-        // if (input.mouse.buttons[1].released)
-        //     std::cout << "Mouse button 1 released." << std::endl;
-        // if (input.mouse.buttons[2].pressed)
-        //     std::cout << "Mouse button 2 pressed." << std::endl;
-        // if (input.mouse.buttons[2].released)
-        //     std::cout << "Mouse button 2 released." << std::endl;
-        // if (input.mouse.buttons[3].pressed)
-        //     std::cout << "Mouse button 3 pressed." << std::endl;
-        // if (input.mouse.buttons[3].released)
-        //     std::cout << "Mouse button 3 released." << std::endl;
-        // if (input.mouse.buttons[4].pressed)
-        //     std::cout << "Mouse button 4 pressed." << std::endl;
-        // if (input.mouse.buttons[4].released)
-        //     std::cout << "Mouse button 4 released." << std::endl;
-        // if (input.mouse.buttons[5].pressed)
-        //     std::cout << "Mouse button 5 pressed." << std::endl;
-        // if (input.mouse.buttons[5].released)
-        //     std::cout << "Mouse button 5 released." << std::endl;
+        // process events
+        Core::InputState input = sdl.processEvents();
 
-        // // keyboard left, right, up, down buttons
-        // if (input.keyboard.buttons[SDLK_LEFT].pressed)
-        //     std::cout << "Keyboard button left pressed." << std::endl;
-        // if (input.keyboard.buttons[SDLK_LEFT].released)
-        //     std::cout << "Keyboard button left released." << std::endl;
-        // if (input.keyboard.buttons[SDLK_RIGHT].pressed)
-        //     std::cout << "Keyboard button right pressed." << std::endl;
-        // if (input.keyboard.buttons[SDLK_RIGHT].released)
-        //     std::cout << "Keyboard button right released." << std::endl;
-        // if (input.keyboard.buttons[SDLK_UP].pressed)
-        //     std::cout << "Keyboard button up pressed." << std::endl;
-        // if (input.keyboard.buttons[SDLK_UP].released)
-        //     std::cout << "Keyboard button up released." << std::endl;
-        // if (input.keyboard.buttons[SDLK_DOWN].pressed)
-        //     std::cout << "Keyboard button down pressed." << std::endl;
-        // if (input.keyboard.buttons[SDLK_DOWN].released)
-        //     std::cout << "Keyboard button down released." << std::endl;
+        // mouse motion
+        if(input.mouse.moved)
+            std::cout << "mouse=(" << input.mouse.x << ", " << input.mouse.y << ")" << std::endl;
+        
+        // mouse buttons
+        if(input.mouse.buttons == SDL_BUTTON_LMASK)
+            std::cout << "mouse1" << std::endl;
+        if(input.mouse.buttons == SDL_BUTTON_RMASK)
+            std::cout << "mouse2" << std::endl;
+        if(input.mouse.buttons == SDL_BUTTON_MMASK)
+            std::cout << "mouse3" << std::endl;
+        if(input.mouse.buttons == SDL_BUTTON_X1MASK)
+            std::cout << "mouse4" << std::endl;
+        if(input.mouse.buttons == SDL_BUTTON_X2MASK)
+            std::cout << "mouse5" << std::endl;
 
-        // // keyboard buttons
-        // if (input.keyboard.buttons[SDLK_ESCAPE].pressed)
-        //     std::cout << "Keyboard button escape key pressed." << std::endl;
-        // if (input.keyboard.buttons[SDLK_ESCAPE].released)
-        //     std::cout << "Keyboard button escape key released." << std::endl;
-        // if (input.keyboard.buttons[SDLK_BACKQUOTE].pressed)
-        //     std::cout << "Keyboard button backquote key pressed." << std::endl;
-        // if (input.keyboard.buttons[SDLK_BACKQUOTE].released)
-        //     std::cout << "Keyboard button backquote key released." << std::endl;
+        // mouse wheel
+        if(input.mouse.wheel.moved)
+            std::cout << "mousewheel=" << input.mouse.wheel.y << std::endl;
 
+        // keyboard buttons
+        if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
+            std::cout << "escape" << std::endl;
+        if(input.keyboard.buttons[SDL_SCANCODE_LSHIFT])
+            std::cout << "shift" << std::endl;
+        if(input.keyboard.buttons[SDL_SCANCODE_LEFT])
+            std::cout << "left" << std::endl;
+        if(input.keyboard.buttons[SDL_SCANCODE_RIGHT])
+            std::cout << "right" << std::endl;
+        if(input.keyboard.buttons[SDL_SCANCODE_UP])
+            std::cout << "up" << std::endl;
+        if(input.keyboard.buttons[SDL_SCANCODE_DOWN])
+            std::cout << "down" << std::endl;
+
+        // render
         sdl.clear();
         sdl.swap();
+
+        // handle quit
+        quit = input.quit;
+        if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
+            quit = true;
     }
 
     return 0;

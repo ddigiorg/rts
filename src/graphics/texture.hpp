@@ -1,11 +1,12 @@
-#ifndef TEXTURE_HPP
-#define TEXTURE_HPP
+#pragma once
 
 #include <GL/glew.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <iostream>
+
+namespace GFX {
 
 class Texture {
 public:
@@ -62,4 +63,4 @@ void Texture::bind() {
     glBindTexture(GL_TEXTURE_2D, texture);
 }
 
-#endif // TEXTURE_HPP
+} // namespace GFX

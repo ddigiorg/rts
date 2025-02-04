@@ -1,5 +1,6 @@
 #pragma once
 
+#include "graphics/types.hpp"
 #include "graphics/shader.hpp"
 
 #include <GL/glew.h>

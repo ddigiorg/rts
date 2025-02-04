@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-inline void debugMessageCallback(
+inline void openglDebugMessageCallback(
         GLenum source,
         GLenum type,
         GLuint id,

@@ -1,84 +1,96 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "core/input_state.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/font.hpp"
 
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <string>
-
-struct DebugData {
-    int fps = 0;
-    int cameraX = 0;
-    int cameraY = 0;
-    int mouseX = 0;
-    int mouseY = 0;
-    int mouseWorldX = 0;
-    int mouseWorldY = 0;
-};
-
-struct DebugRenderLine {
-    std::string text;
-    float x, y;
-};
+#include <vector>
+#include <iostream>
 
 namespace GFX {
 
-class DebugScreen {
-public:
-    void handleEvents(const Core::FrameInput& input);
-    void update(const DebugData& data);
-    void render(Camera& camera);
-
-private:
-    bool isVisible = false;
+struct DebugScreenLine {
+    std::string text = "";
+    float x = 0.0f;
+    float y = 0.0f;
     unsigned int pt = 10;
     glm::vec3 color = {1.0f, 1.0f, 1.0f};
-
-    DebugData data;
-    Font font;
 };
 
-void DebugScreen::handleEvents(const Core::FrameInput& input) {
-    // if (input.keyboard.buttons.at(SDLK_BACKQUOTE).pressed) {
-    //     isVisible = !isVisible;
-    // }
+class DebugScreen {
+public:
+    DebugScreen(bool isVisible = false);
+    void update(const Core::InputState& input);
+    void render(const std::vector<DebugScreenLine>& lines);
+
+    bool isActive() const { return isVisible; };
+
+private:
+    void _resize(int width, int height);
+
+    bool isVisible = false;
+    bool pressedPrev = false;
+
+    Font font;
+
+    glm::mat4x4 vMat;  // view matrix
+    glm::mat4x4 pMat;  // projection matrix
+    glm::mat4x4 vpMat; // view projection matrix
+};
+
+DebugScreen::DebugScreen(bool isVisible) {
+    this->isVisible = isVisible;
+
+    // setup view matrix
+    glm::vec3 position = {0.0f, 0.0f, 1.0f};
+    glm::vec3 front = {0.0f, 0.0f, -1.0f};
+    glm::vec3 up = {0.0f, 1.0f, 0.0f};
+    vMat = glm::lookAt(position, position + front, up);
+
+    // setup projection matrix
+    _resize(Core::DEFAULT_WINDOW_WIDTH, Core::DEFAULT_WINDOW_HEIGHT);
+
+    // setup view projection matrix
+    vpMat = pMat * vMat;
 }
 
-void DebugScreen::update(const DebugData& data) {
-    this->data = data;
+void DebugScreen::update(const Core::InputState& input) {
+
+    if (input.window.resized)
+        _resize(input.window.width, input.window.height);
+
+    // TODO: improve this
+    bool pressed = input.keyboard.buttons[SDL_SCANCODE_GRAVE];
+    if (pressed && !pressedPrev)
+        isVisible = !isVisible;
+    pressedPrev = pressed;
 }
 
-void DebugScreen::render(Camera& camera) {
+void DebugScreen::render(const std::vector<DebugScreenLine>& lines) {
     if (!isVisible)
         return;
 
-    glm::vec2 aspect = camera.getAspect();
+    for (const DebugScreenLine& line : lines) {
+        font.render(line.text, line.x, line.y, line.pt, line.color, vpMat);
+    }
+}
 
-    float x = -aspect.x + 5.0f;
-    float y = aspect.y - 20.0f;
-    DebugRenderLine lines[4];
-
-    lines[0].text = "FPS: " + std::to_string(data.fps);
-    lines[0].x = x;
-    lines[0].y = y;
-
-    lines[1].text = "Camera: (" + std::to_string(data.cameraX) + ", " + std::to_string(data.cameraY) + ")";
-    lines[1].x = x;
-    lines[1].y = y - 20.f;
-
-    lines[2].text = "Mouse (Screen): (" + std::to_string(data.mouseX) + ", " + std::to_string(data.mouseY) + ")";
-    lines[2].x = x;
-    lines[2].y = y - 40.f;
-
-    lines[3].text = "Mouse (World): (" + std::to_string(data.mouseWorldX) + ", " + std::to_string(data.mouseWorldY) + ")";
-    lines[3].x = x;
-    lines[3].y = y - 60.f;
-
-    for (const DebugRenderLine& line : lines)
-        font.render(line.text, line.x, line.y, pt, color, camera.getViewProjMatrix());
+void DebugScreen::_resize(int width, int height) {
+    float left   = 0.0f;
+    float right  = (float)width;
+    float bottom = 0.0f;
+    float top    = (float)height;
+    float near   = -1.0f;
+    float far    = 1.0f;
+    pMat = glm::ortho(left, right, bottom, top, near, far);
+    vpMat = pMat * vMat;
 }
 
 } // namespace GFX

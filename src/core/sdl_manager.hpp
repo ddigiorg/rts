@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core/types.hpp"
-#include "graphics/debug_message_callback.hpp"
+#include "core/input_state.hpp"
+#include "graphics/opengl_debug.hpp"
 
-#define SDL_MAIN_HANDLED  // Prevent SDL from redefining main()
 #include <SDL3/SDL.h>
 #include <GL/glew.h>
 
@@ -19,13 +19,16 @@ public:
     ~SDLManager();
     void clear();
     void swap();
-    const FrameInput& SDLManager::processEvents();
+    const InputState& SDLManager::processEvents();
+
+    int getWindowWidth() const { return input.window.width; };
+    int getWindowHeight() const { return input.window.height; };
 
 private:
     SDL_Window* window = nullptr;
     SDL_GLContext context = nullptr;
 
-    FrameInput input;
+    InputState input;
 };
 
 SDLManager::SDLManager() {
@@ -91,28 +94,30 @@ SDLManager::SDLManager() {
     // // enable OpenGL debug mode
     // glEnable(GL_DEBUG_OUTPUT);
     // glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    // glDebugMessageCallback(debugMessageCallback, nullptr);
+    // glDebugMessageCallback(openglDebugMessageCallback, nullptr);
 
     // setup OpenGL states
     glViewport(0, 0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // setup input
+    input.window.width = DEFAULT_WINDOW_WIDTH;
+    input.window.height = DEFAULT_WINDOW_HEIGHT;
+    input.keyboard.buttons = SDL_GetKeyboardState(&input.keyboard.numkeys);
 }
 
 SDLManager::~SDLManager() {
     if (window)
         SDL_DestroyWindow(window);
-
     if (context)
-        // SDL_GL_DeleteContext(context);
         SDL_GL_DestroyContext(context);
-
-    if(SDL_WasInit(SDL_INIT_VIDEO) != 0)
+    if (SDL_WasInit(SDL_INIT_VIDEO) != 0)
         SDL_Quit();
 }
 
-// void SDLManager::printGLInfo() {
+// void SDLManager::printOpenGLInfo() {
 //     std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
 //     std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
 //     std::cout << "GL Version: " << glGetString(GL_VERSION) << std::endl;
@@ -127,80 +132,47 @@ void SDLManager::swap() {
     SDL_GL_SwapWindow(window);
 }
 
-const FrameInput& SDLManager::processEvents() {
+const InputState& SDLManager::processEvents() {
     SDL_Event event;
 
-    // // reset the mouse button states
-    // for (auto& pair : input.mouse.buttons)
-    //     pair.second = {false, false};
-
-    // // reset the keyboard button states
-    // for (auto& pair : input.keyboard.buttons)
-    //     pair.second = {false, false};
+    // reset flags
+    input.window.resized = false;
+    input.mouse.moved = false;
+    input.mouse.wheel.moved = false;
 
     // poll for SDL events
     while(SDL_PollEvent(&event)) {
 
-        // // handle mouse motion event
-        // if (event.type == SDL_MOUSEMOTION) {
-        //     input.mouse.moved = true;
-        //     input.mouse.x = event.motion.x;
-        //     input.mouse.y = event.motion.y;
-        // }
+        // mouse motion
+        if (event.type == SDL_EVENT_MOUSE_MOTION) {
+            input.mouse.moved = true;
+            input.mouse.x = event.motion.x;
+            input.mouse.y = event.motion.y;
+        }
 
-        // // handle mouse down event
-        // if (event.type == SDL_MOUSEBUTTONDOWN) {
-        //     Uint8 b = event.button.button;
-        //     input.mouse.buttons[b].pressed = true;
-        // }
+        // mouse wheel
+        if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+            input.mouse.wheel.moved = true;
+            input.mouse.wheel.x = event.wheel.x;
+            input.mouse.wheel.y = event.wheel.y;
+        }
 
-        // // handle mouse mouse up event
-        // if (event.type == SDL_MOUSEBUTTONUP) {
-        //     Uint8 b = event.button.button;
-        //     input.mouse.buttons[b].pressed = false;
-        //     input.mouse.buttons[b].released = true;
-        // }
+        // window resized
+        if(event.type == SDL_EVENT_WINDOW_RESIZED) {
+            input.window.resized = true;
+            input.window.width = event.window.data1;
+            input.window.height = event.window.data2;
+            glViewport(0, 0, input.window.width, input.window.height);
+        }
 
-        // // key down events
-        // if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-        //     SDL_Keycode b = event.key.keysym.sym;
-        //     input.keyboard.buttons[b].pressed = true;
-        // }
-
-        // // key up events
-        // if (event.type == SDL_KEYUP) {
-        //     SDL_Keycode b = event.key.keysym.sym;
-        //     input.keyboard.buttons[b].pressed = false;
-        //     input.keyboard.buttons[b].released = true;
-        // }
-
-        // // window events
-        // if(event.type == SDL_WINDOWEVENT) {
-        //     if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-        //         SDL_GetWindowSize(window, &input.window.width, &input.window.height);
-        //         glViewport(0, 0, input.window.width, input.window.height);
-        //         input.window.resized = true;
-        //     }
-        // }
-
-        // quit event
-        // if (event.type == SDL_QUIT) {
+        // quit
         if (event.type == SDL_EVENT_QUIT) {
             input.quit = true;
         }
     }
 
-    // int numkeys = 0;
-    // const Uint8* currentKeyStates = SDL_GetKeyboardState(&numkeys);
-    // // std::cout << numkeys << std::endl;
-
-    // if(currentKeyStates[SDL_SCANCODE_LSHIFT])
-    //     std::cout << "shift" << std::endl;
-
-    // if(currentKeyStates[SDL_SCANCODE_A])
-    //     std::cout << "a" << std::endl;
-    
-
+    // update mouse states after polling events
+    input.mouse.buttons = SDL_GetMouseState(nullptr, nullptr);
 
     return input;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "core/input_state.hpp"
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -9,6 +10,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace GFX {
+
+constexpr float CAMERA_DEFAULT_SPEED = 10.0f;
+constexpr float CAMERA_DEFAULT_NEAR = -1.0f;
+constexpr float CAMERA_DEFAULT_FAR = 1.0f;
+constexpr glm::vec3 CAMERA_DEFAULT_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
+constexpr glm::vec3 CAMERA_DEFAULT_UP = glm::vec3(0.0f, 1.0f, 0.0f);
+constexpr glm::vec3 CAMERA_DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 1.0f);
 
 struct CameraInput {
     glm::vec2 movement;
@@ -20,9 +28,7 @@ struct CameraInput {
 class Camera {
 public:
     Camera();
-    void handleEvents(const Core::FrameInput& input);
-    void resize(int width, int height);
-    void update();
+    void update(const Core::InputState& input);
 
     glm::vec2 screenToWorld(
         int screenX,
@@ -40,11 +46,9 @@ public:
     const glm::mat4x4& getViewProjMatrix() const { return vpMat; };
 
 private:
-    static const float DEFAULT_NEAR;
-    static const float DEFAULT_FAR;
-    static const glm::vec3 DEFAULT_FRONT;
-    static const glm::vec3 DEFAULT_UP;
-    static const glm::vec3 DEFAULT_POSITION;
+    void _resize(int width, int height);
+
+    float speed;
     glm::vec3 position;
     glm::vec2 aspect;
     glm::mat4x4 vMat;  // view matrix
@@ -52,49 +56,64 @@ private:
     glm::mat4x4 vpMat; // view projection matrix
 };
 
-const float Camera::DEFAULT_NEAR = -1.0f;
-const float Camera::DEFAULT_FAR = 1.0f;
-const glm::vec3 Camera::DEFAULT_FRONT = glm::vec3(0.0f, 0.0f, -1.0f);
-const glm::vec3 Camera::DEFAULT_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-const glm::vec3 Camera::DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 1.0f);
-
 Camera::Camera() {
-    position = DEFAULT_POSITION;
+    position = CAMERA_DEFAULT_POSITION;
+    speed = CAMERA_DEFAULT_SPEED;
 
     // setup view matrix
-    vMat = glm::lookAt(position, position + DEFAULT_FRONT, DEFAULT_UP);
+    vMat = glm::lookAt(position, position + CAMERA_DEFAULT_FRONT, CAMERA_DEFAULT_UP);
 
     // setup orthographic projection matrix
-    resize(Core::DEFAULT_WINDOW_WIDTH, Core::DEFAULT_WINDOW_HEIGHT);
-}
+    _resize(Core::DEFAULT_WINDOW_WIDTH, Core::DEFAULT_WINDOW_HEIGHT);
 
-void Camera::handleEvents(const Core::FrameInput& input) {
-    if (input.window.resized) {
-        resize(input.window.width, input.window.height);
-    }
-}
-
-void Camera::resize(int width, int height) {
-    aspect = {(float)width * 0.5f, (float)height * 0.5f};
-    float left   = -aspect.x;
-    float right  =  aspect.x;
-    float bottom = -aspect.y;
-    float top    =  aspect.y;
-    float near   = DEFAULT_NEAR;
-    float far    = DEFAULT_FAR;
-    pMat = glm::ortho(left, right, bottom, top, near, far);
-}
-
-void Camera::update() {
-
-    // // handle movement
-    // position += event.movement * speed;
-
-    // // handle resizing
-    // if (event.resize)
-    //     resize(event.resizeWidth, event.resizeHeight);
-
+    // setup view projection matrix
     vpMat = pMat * vMat;
+}
+
+void Camera::update(const Core::InputState& input) {
+    bool resized = false;
+    bool moved = false;
+    glm::vec3 direction = {0.0f, 0.0f, 0.0f};
+
+    // resize camera
+    if (input.window.resized) {
+        _resize(input.window.width, input.window.height);
+        resized = true;
+    }
+
+    // move camera left
+    if (input.keyboard.buttons[SDL_SCANCODE_LEFT]) {
+        direction.x += -1.0f;
+        moved = true;
+    }
+
+    // move camera right
+    if (input.keyboard.buttons[SDL_SCANCODE_RIGHT]) {
+        direction.x += 1.0f;
+        moved = true;
+    }
+
+    // move camera up
+    if (input.keyboard.buttons[SDL_SCANCODE_UP]) {
+        direction.y += 1.0f;
+        moved = true;
+    }
+
+    // move camera down
+    if (input.keyboard.buttons[SDL_SCANCODE_DOWN]) {
+        direction.y += -1.0f;
+        moved = true;
+    }
+
+    // if moved update position and view matrix
+    if (moved) {
+        position += direction * speed;
+        vMat = glm::lookAt(position, position + CAMERA_DEFAULT_FRONT, CAMERA_DEFAULT_UP);
+    }
+
+    // update view projection matrix
+    if (resized || moved)
+        vpMat = pMat * vMat;
 }
 
 glm::vec2 Camera::screenToWorld(
@@ -143,5 +162,16 @@ glm::vec2 Camera::screenToWorld(
 //               << rayWorld.y << ", "
 //               << rayWorld.z << std::endl;
 // }
+
+void Camera::_resize(int width, int height) {
+    aspect = {(float)width * 0.5f, (float)height * 0.5f};
+    float left   = -aspect.x;
+    float right  =  aspect.x;
+    float bottom = -aspect.y;
+    float top    =  aspect.y;
+    float near   = CAMERA_DEFAULT_NEAR;
+    float far    = CAMERA_DEFAULT_FAR;
+    pMat = glm::ortho(left, right, bottom, top, near, far);
+}
 
 } // namespace GFX

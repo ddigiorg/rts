@@ -1,34 +1,49 @@
 #include "core/sdl_manager.hpp"
 #include "graphics/camera.hpp"
+#include "graphics/debug_screen.hpp"
 #include "graphics/quad_renderer.hpp"
 
 #include <iostream>
-#include <vector>
+
+struct Quad {
+    float position[2];
+    float size[1];
+    float color[3];
+};
 
 int main() {
-    std::cout << "Camera test running..." << std::endl;
-
     Core::SDLManager sdl;
-    Core::EventState events;
     GFX::Camera camera;
     GFX::QuadRenderer quadRenderer(1);
 
-    std::vector<float> quadPos = {0.0f, 0.0f};
-    std::vector<float> quadSize = {128.0f};
-    std::vector<float> quadColor = {1.0f, 1.0f, 1.0f};
+    Quad quad {
+        {0.0f, 0.0f}, // position
+        {128.0f}, // size
+        {1.0f, 1.0f, 1.0f} // color
+    };
 
-    while (!events.quit) {
-        sdl.processEvents(events);
-        camera.handleEvents(events);
+    quadRenderer.clear();
+    quadRenderer.append(1, &quad.position, &quad.size, &quad.color);
+
+    // loop
+    bool quit = false;
+    while (!quit) {
+
+        // process events
+        Core::InputState input = sdl.processEvents();
 
         // update
-        camera.update();
-        quadRenderer.append(1, quadPos.data(), quadSize.data(), quadColor.data());
+        camera.update(input);
 
         // render
         sdl.clear();
         quadRenderer.render(camera);
         sdl.swap();
+
+        // handle quit
+        quit = input.quit;
+        if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
+            quit = true;
     }
 
     return 0;
