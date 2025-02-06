@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ecs/types.hpp"
-#include "ecs/entity_manager.hpp"
-#include "utilities/assert.hpp"
+#include "engine/ecs/types.hpp"
+#include "engine/ecs/entity_manager.hpp"
+#include "engine/utilities/assert.hpp"
 
 #include <vector>
 #include <unordered_map>

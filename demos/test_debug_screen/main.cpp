@@ -8,6 +8,7 @@
 
 int main() {
     Core::SDLManager sdl;
+    GFX::Camera cameraScreen;
     GFX::DebugScreen debugScreen(true);
 
     float windowHeight = (float)sdl.getWindowHeight();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/types.hpp"
+#include "core/input_state.hpp"
 #include "core/sdl_manager.hpp"
 #include "ecs/manager.hpp"
 #include "game/components/global.hpp"
@@ -115,47 +115,28 @@ void Application::loop() {
         timer.reset();
 
         // process events
-        Core::FrameInput input = sdl.processEvents();
-        quit = input.quit;
+        Core::InputState input = sdl.processEvents();
 
-        if (input.mouse.moved) {
-            mousePosWorld = camera.screenToWorld(
-                input.mouse.x,
-                input.mouse.y,
-                input.window.width,
-                input.window.height
-            );
-        }
+        // update
+        camera.update(input);
+        cursor.update(input);
+        debugScreen.update(input);
+        ecs.triggerEvent<OnUpdate>();
 
-        camera.handleEvents(input);
-        cursor.handleEvents(input, mousePosWorld);
-        // debugScreen.handleEvents(input);
-
-        // // update data   
-        // camera.update();
-
-        // glm::vec3 cameraPos = camera.getPosition();
-        // debugScreen.update(DebugData{
-        //     0, // fps
-        //     (int)cameraPos.x,
-        //     (int)cameraPos.y,
-        //     (int)input.mouse.x,
-        //     (int)input.mouse.y,
-        //     (int)mousePosWorld.x,
-        //     (int)mousePosWorld.y,
-        // });
-
-        // ecs.triggerEvent<OnUpdate>();
-
-        // // render
-        // sdl.clear();
-        // quadRenderer.render(camera);
-        // cursor.render(camera);
+        // render
+        sdl.clear();
+        quadRenderer.render(camera);
+        cursor.render(camera);
         // debugScreen.render(camera);
-        // sdl.swap();
+        sdl.swap();
 
         // frameCount++;
         // std::cout << timer.elapsed() << std::endl;
+
+        // handle quit
+        quit = input.quit;
+        if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
+            quit = true;
     }
 
     // // https://gameprogrammingpatterns.com/game-loop.html

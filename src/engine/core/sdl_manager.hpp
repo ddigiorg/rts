@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "core/input_state.hpp"
-#include "graphics/opengl_debug.hpp"
+#include "engine/core/types.hpp"
+#include "engine/core/user_input.hpp"
+#include "engine/gfx/opengl_debug.hpp"
 
 #include <SDL3/SDL.h>
 #include <GL/glew.h>
@@ -11,7 +11,7 @@
 
 namespace Core {
 
-// TODO: move any OpenGL functionality to graphics since that's where it belongs?
+// TODO: move any OpenGL functionality to gfx since that's where it belongs?
 
 class SDLManager {
 public:
@@ -19,7 +19,7 @@ public:
     ~SDLManager();
     void clear();
     void swap();
-    const InputState& SDLManager::processEvents();
+    const UserInput& SDLManager::processEvents();
 
     int getWindowWidth() const { return input.window.width; };
     int getWindowHeight() const { return input.window.height; };
@@ -27,8 +27,7 @@ public:
 private:
     SDL_Window* window = nullptr;
     SDL_GLContext context = nullptr;
-
-    InputState input;
+    UserInput input;
 };
 
 SDLManager::SDLManager() {
@@ -75,7 +74,12 @@ SDLManager::SDLManager() {
         exit(1); // TODO: should probably return or throw an error instead
     }
 
-    // setup OpenGL graphics context
+    // setup other sdl options
+    SDL_SetWindowMouseGrab(window, true);
+    // SDL_HideCursor();
+    SDL_WarpMouseInWindow(window, DEFAULT_WINDOW_WIDTH / 2.0f, DEFAULT_WINDOW_HEIGHT / 2.0f);
+
+    // setup OpenGL gfx context
     context = SDL_GL_CreateContext(window);
     if (context == nullptr) {
         std::cout << "Error: SDL_GL_CreateContext() failed:" << std::endl;
@@ -132,7 +136,7 @@ void SDLManager::swap() {
     SDL_GL_SwapWindow(window);
 }
 
-const InputState& SDLManager::processEvents() {
+const UserInput& SDLManager::processEvents() {
     SDL_Event event;
 
     // reset flags
@@ -148,6 +152,8 @@ const InputState& SDLManager::processEvents() {
             input.mouse.moved = true;
             input.mouse.x = event.motion.x;
             input.mouse.y = event.motion.y;
+            input.mouse.xrel = event.motion.xrel;
+            input.mouse.yrel = event.motion.yrel;
         }
 
         // mouse wheel

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "graphics/types.hpp"
-#include "graphics/camera.hpp"
-#include "graphics/shader.hpp"
-#include "utilities/assert.hpp"
+#include "engine/gfx/types.hpp"
+#include "engine/gfx/camera.hpp"
+#include "engine/gfx/shader.hpp"
+#include "engine/utilities/assert.hpp"
 
 #include <GL/glew.h>
 #include <glm/mat4x4.hpp>

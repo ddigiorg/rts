@@ -5,7 +5,7 @@
 #include "game/components/position.hpp"
 #include "game/components/size.hpp"
 #include "game/components/color.hpp"
-#include "graphics/quad_renderer.hpp"
+#include "gfx/quad_renderer.hpp"
 
 class SpriteUpdate : public ECS::System {
 public:
@@ -13,12 +13,14 @@ public:
         auto global = ecs->getSingletonData<Global>();
         GFX::QuadRenderer* qr = global->quadRenderer;
 
+        qr->clear();
+
         std::vector<ECS::Archetype*> archetypes = ecs->query({
             ECS::typeof(Position),
             ECS::typeof(Size),
             ECS::typeof(Color)
         });
-    
+
         for (ECS::Archetype* archetype : archetypes) {
             for (size_t c = 0; c < archetype->getNumChunks(); c++) {
                 size_t numEntities = archetype->getChunkNumEntities(c);

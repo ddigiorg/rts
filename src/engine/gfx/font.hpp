@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graphics/types.hpp"
-#include "graphics/shader.hpp"
+#include "engine/gfx/types.hpp"
+#include "engine/gfx/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>
@@ -17,7 +17,7 @@
 #define FONT_PIXEL_PER_POINT ((float)FONT_PIXELS_PER_INCH / (float)FONT_POINTS_PER_INCH)
 #define FONT_GLYPH_PIXEL_HEIGHT 64
 
-// https://learnopengl.com/In-Practice/Text-graphics
+// https://learnopengl.com/In-Practice/Text-gfx
 // signed distance fields (SDFs):
 // - https://www.youtube.com/watch?v=1b5hIMqz_wM
 // - https://www.youtube.com/watch?v=d8cfgcJR9Tk

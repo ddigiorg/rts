@@ -1,9 +1,9 @@
 #pragma once
 
 #include "ecs/types.hpp"
-#include "graphics/camera.hpp"
-#include "graphics/cursor.hpp"
-#include "graphics/quad_renderer.hpp"
+#include "gfx/camera.hpp"
+#include "gfx/cursor.hpp"
+#include "gfx/quad_renderer.hpp"
 
 struct Global : ECS::Component {
     GFX::Camera* camera;

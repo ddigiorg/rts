@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "graphics/types.hpp"
-#include "graphics/camera.hpp"
-#include "graphics/shader.hpp"
+#include "engine/core/user_input.hpp"
+#include "engine/gfx/types.hpp"
+#include "engine/gfx/camera.hpp"
+#include "engine/gfx/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/vec2.hpp>
@@ -15,10 +15,7 @@ class Cursor {
 public:
     Cursor();
     ~Cursor();
-    void handleEvents(const Core::FrameInput& input, const glm::vec2& mousePosWorld);
-    void startSelection(float x, float y);
-    void updateSelection(float x, float y);
-    void endSelection();
+    void update(Camera& camera, const Core::UserInput& input);
     void render(Camera& camera);
 
     bool getIsSelecting() const { return isSelecting; };
@@ -29,8 +26,7 @@ private:
     void _updateVertices();
 
     bool isSelecting = false;
-    // glm::vec2 posScreen = {0.0f, 0.0f};
-    // glm::vec2 posWorld = {0.0f, 0.0f};
+    bool mouseLPrev = false;
 
     glm::vec2 begPos = {0.0f, 0.0f};
     glm::vec2 endPos = {0.0f, 0.0f};
@@ -65,39 +61,41 @@ Cursor::~Cursor() {
     if (VBO) glDeleteBuffers(1, &VBO);
 }
 
-void Cursor::handleEvents(const Core::FrameInput& input, const glm::vec2& mousePosWorld) {
+void Cursor::update(Camera& camera, const Core::UserInput& input) {
+        bool mouseL = input.mouse.buttons == SDL_BUTTON_LMASK;
 
-        if (input.mouse.buttons.at(1).pressed) {
-            startSelection(mousePosWorld.x, mousePosWorld.y);
+        // mouse 1 pressed
+        if (mouseL && !mouseLPrev) {
+            isSelecting = true;
+            glm::vec2 worldPos = camera.screenToWorldCoords(
+                input.mouse.x,
+                input.mouse.y,
+                800.0f,
+                600.0f
+            );
+            begPos = worldPos;
+            endPos = begPos;
+            _updateVertices();
         }
 
-        // if (input.mouse.moved) {
-        //     updateSelection(mousePosWorld.x, mousePosWorld.y);
-        // }
+        // mouse 1 held and moved
+        if (isSelecting) {
+            glm::vec2 worldPos = camera.screenToWorldCoords(
+                input.mouse.x,
+                input.mouse.y,
+                800.0f,
+                600.0f
+            );
+            endPos = worldPos;
+            _updateVertices();
+        }
 
-        // if (input.mouse.buttons.at(1).released) {
-        //     endSelection();
-        // }
-}
+        // mouse 1 released
+        if (!mouseL && mouseLPrev) {
+            isSelecting = false;
+        }
 
-void Cursor::startSelection(float x, float y) {
-    if (!isSelecting) {
-        isSelecting = true;
-        begPos = {x, y};
-        endPos = begPos;
-        _updateVertices();
-    }
-}
-
-void Cursor::updateSelection(float x, float y) {
-    if (isSelecting) {
-        endPos = {x, y};
-        _updateVertices();
-    }
-}
-
-void Cursor::endSelection() {
-    isSelecting = false;
+        mouseLPrev = mouseL;
 }
 
 void Cursor::render(Camera& camera) {

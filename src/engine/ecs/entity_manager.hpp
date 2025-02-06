@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ecs/types.hpp"
-#include "utilities/assert.hpp"
+#include "engine/ecs/types.hpp"
+#include "engine/utilities/assert.hpp"
 
 #include <vector>
 
