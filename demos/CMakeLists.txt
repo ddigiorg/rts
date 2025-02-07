@@ -12,8 +12,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/demos/bin)
 # target_link_libraries(${DEMO_NAME} PRIVATE engine)
 # target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_camera
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_camera)
+# # test_camera
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_camera)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE engine)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
+# test_chunk
+set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_chunk)
 get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
 add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
 target_link_libraries(${DEMO_NAME} PRIVATE engine)
@@ -32,6 +39,7 @@ target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
 # target_link_libraries(${DEMO_NAME} PRIVATE engine)
 # target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
 
 
 
