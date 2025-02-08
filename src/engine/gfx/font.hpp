@@ -54,9 +54,12 @@ private:
     std::map<char, Character> characters;
 };
 
-Font::Font() : shader(FONT_VERT_FILEPATH, FONT_FRAG_FILEPATH) {
+Font::Font() {
     FT_Library ft;
     FT_Error error;
+
+    // load shader
+    shader.load(FONT_VERT_FILEPATH, FONT_FRAG_FILEPATH);
 
     // setup FreeType
     error = FT_Init_FreeType(&ft);

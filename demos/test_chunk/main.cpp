@@ -60,13 +60,7 @@ int main() {
 
     ChunkRenderer chunkRenderer;
 
-    std::vector<glm::vec2> positions;
-    for (int y = 0; y < 16; y++) {
-        for (int x = 0; x < 16; x++) {
-            positions.push_back(glm::vec2(x, y));
-        }
-    }
-    chunkRenderer.update(positions.data());
+
 
     bool quit = false;
     float dt = 1.0f;

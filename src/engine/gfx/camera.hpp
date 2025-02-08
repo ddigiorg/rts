@@ -90,14 +90,13 @@ public:
     );
 
     // getters
+    const float getZoom() const { return zoomScale; };
     const glm::vec2 getSize() const { return size; };
     const glm::vec3 getPosition() const { return position; };
     const glm::mat4 getViewMatrix() const { return view; };
     const glm::mat4 getProjMatrix() const { return proj; };
     const glm::mat4 getViewProjMatrix() const { return proj * view; };
     const Frustum getFrustum() const { return frustum; };
-
-
 
 private:
     Type type = Type::Orthographic;
@@ -106,6 +105,8 @@ private:
 
     float speed = 10.0f;
     float zoomSensitivity = 0.1f;
+
+    float zoomScale = 1.0f;
 
     glm::vec2 size = {2.0f, 2.0f};
     glm::vec3 position = {0.0f, 0.0f, 1.0f};
@@ -199,6 +200,7 @@ void Camera::zoom(float factor) {
         return;
 
     float scale = std::exp(factor * zoomSensitivity);
+    zoomScale *= scale;
 
     if (type == Camera::Type::Orthographic) {
         frustum.l *= scale;

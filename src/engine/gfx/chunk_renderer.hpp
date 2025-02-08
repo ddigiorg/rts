@@ -5,14 +5,16 @@
 #include "engine/gfx/shader.hpp"
 #include "engine/gfx/texture.hpp"
 #include "engine/utilities/assert.hpp"
+#include "engine/utilities/isometric.hpp"
 
 #include <GL/glew.h>
 #include <glm/mat4x4.hpp>
 
 #include <vector>
 
-#define CHUNK_LENGTH 16 // TODO: come up with a better name for this
-#define TILE_SIZE 64.0f
+constexpr unsigned int TILE_COUNT = 16;
+constexpr glm::ivec2 TILE_SIZE = glm::ivec2(64, 32);
+constexpr glm::ivec2 CHUNK_SIZE = glm::ivec2(64 * TILE_COUNT, 32 * TILE_COUNT);
 
 namespace GFX {
 
@@ -20,105 +22,190 @@ class ChunkRenderer {
 public:
     ChunkRenderer();
     ~ChunkRenderer();
-    void update(const void* data);
     void render(Camera& camera);
 
 private:
-    static float vertices[];
-    static unsigned int indices[];
+    void _setupOffsetInfo();
+    void _setupSpritePipeline();
+    void _setupGridlinePipeline();
 
-    unsigned int VAO = 0;
-    unsigned int VBO = 0;
-    unsigned int EBO = 0;
-    unsigned int positionVBO = 0;
+    // tile offset information
+    unsigned int offsetVBO;
+    glm::vec2 offsets[TILE_COUNT][TILE_COUNT]; // todo should be static float?
+    const int capacity = TILE_COUNT * TILE_COUNT;
 
-    Shader shader;
-    Texture texture;
+    // tile sprite information
+    unsigned int spriteVAO;
+    unsigned int spriteVBO;
+    unsigned int spriteEBO;
+    static float spriteVertices[16];
+    static unsigned int spriteIndices[6];
+    Shader spriteShader;
+    Texture spriteTexture;
 
-    size_t capacity = CHUNK_LENGTH * CHUNK_LENGTH;
-
-    // glm::vec2 positions[CHUNK_LENGTH][CHUNK_LENGTH];
+    // tile gridline information
+    unsigned int gridlineVAO;
+    unsigned int gridlineVBO;
+    static float gridlineVertices[10];
+    Shader gridlineShader;
 };
 
-float ChunkRenderer::vertices[] = {
-    // positions   texcoords
-    -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
-     0.5f, 0.0f,   1.0f, 0.0f, // bottom right
-     0.5f, 0.5f,   1.0f, 1.0f, // top right
-    -0.5f, 0.5f,   0.0f, 1.0f  // top left
+float ChunkRenderer::spriteVertices[16] = {
+    // positions                          texcoords
+    -0.5f*TILE_SIZE.x, 0.0f*TILE_SIZE.y,   0.0f, 0.0f, // quad bottom left
+     0.5f*TILE_SIZE.x, 0.0f*TILE_SIZE.y,   1.0f, 0.0f, // quad bottom right
+     0.5f*TILE_SIZE.x, 1.0f*TILE_SIZE.y,   1.0f, 1.0f, // quad top right
+    -0.5f*TILE_SIZE.x, 1.0f*TILE_SIZE.y,   0.0f, 1.0f  // quad top left
 };
 
-unsigned int ChunkRenderer::indices[] = {
-    0, 1, 2, // first triangle
-    2, 3, 0  // second triangle
+unsigned int ChunkRenderer::spriteIndices[6] = {
+    0, 1, 2, // first triangle of quad
+    2, 3, 0  // second triangle of quad
 };
 
-ChunkRenderer::ChunkRenderer()
-    : shader(TILE_VERT_FILEPATH, TILE_FRAG_FILEPATH),
-      texture(TILE_TEXTURE_FILEPATH)
-{
+float ChunkRenderer::gridlineVertices[10] = {
+     0.0f*TILE_SIZE.x, 0.0f*TILE_SIZE.y, // iso tile bottom
+     0.5f*TILE_SIZE.x, 0.5f*TILE_SIZE.y, // iso tile right
+     0.0f*TILE_SIZE.x, 1.0f*TILE_SIZE.y, // iso tile top
+    -0.5f*TILE_SIZE.x, 0.5f*TILE_SIZE.y, // iso tile left
+     0.0f*TILE_SIZE.x, 0.0f*TILE_SIZE.y  // iso tile bottom (close the line loop)
+};
+
+ChunkRenderer::ChunkRenderer() {
+    _setupOffsetInfo();
+    _setupSpritePipeline();
+    _setupGridlinePipeline();
+}
+
+void ChunkRenderer::_setupOffsetInfo() {
+
+    for (int y = 0; y < TILE_COUNT; y++) {
+        for (int x = 0; x < TILE_COUNT; x++) {
+            int tx = TILE_COUNT - x - 1;
+            int ty = TILE_COUNT - y - 1;
+            offsets[y][x] = tileToWorld(glm::ivec2(tx, ty), TILE_SIZE);
+        }
+    }
+
+    // setup tile offsets
+    glGenBuffers(1, &offsetVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, offsetVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(offsets), offsets, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void ChunkRenderer::_setupSpritePipeline() {
+
     // generate the opengl objects
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenBuffers(1, &positionVBO);
+    glGenVertexArrays(1, &spriteVAO);
+    glGenBuffers(1, &spriteVBO);
+    glGenBuffers(1, &spriteEBO);
 
     // bind the vertex array object
-    glBindVertexArray(VAO);
+    glBindVertexArray(spriteVAO);
 
-    // setup tile vertices
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // setup tile sprite vertices
+    glBindBuffer(GL_ARRAY_BUFFER, spriteVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(spriteVertices), spriteVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // setup tile indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // setup tile sprite indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, spriteEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(spriteIndices), spriteIndices, GL_STATIC_DRAW);
 
-    // setup tile positions
-    glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
-    glBufferData(GL_ARRAY_BUFFER, capacity * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+    // setup tile offsets
+    glBindBuffer(GL_ARRAY_BUFFER, offsetVBO);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(2);
     glVertexAttribDivisor(2, 1);
 
-    // unbind vertex array object
+    // unbind objects
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    // load shader and texture
+    spriteShader.load(TILE_SPRITE_VERT_FILEPATH, TILE_SPRITE_FRAG_FILEPATH);
+    spriteTexture.load(TILE_TEXTURE_FILEPATH, true);
+}
+
+void ChunkRenderer::_setupGridlinePipeline() {
+
+    // generate the opengl objects
+    glGenVertexArrays(1, &gridlineVAO);
+    glGenBuffers(1, &gridlineVBO);
+
+    // bind the vertex array object
+    glBindVertexArray(gridlineVAO);
+
+    // setup tile gridline vertices
+    glBindBuffer(GL_ARRAY_BUFFER, gridlineVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(gridlineVertices), gridlineVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // setup tile offsets
+    glBindBuffer(GL_ARRAY_BUFFER, offsetVBO);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribDivisor(1, 1);
+
+    // unbind objects
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // load shader
+    gridlineShader.load(TILE_GRIDLINE_VERT_FILEPATH, TILE_GRIDLINE_FRAG_FILEPATH);
 }
 
 ChunkRenderer::~ChunkRenderer() {
-    if (VAO) glDeleteVertexArrays(1, &VAO);
-    if (VBO) glDeleteBuffers(1, &VBO);
-    if (EBO) glDeleteBuffers(1, &EBO);
-    if (positionVBO) glDeleteBuffers(1, &positionVBO);
-}
+    // delete offset objects
+    if (offsetVBO) glDeleteBuffers(1, &offsetVBO);
 
-void ChunkRenderer::update(const void* data) {
-    glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
-    glBufferData(GL_ARRAY_BUFFER, capacity * sizeof(glm::vec2), data, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // delete sprite objects
+    if (spriteVAO) glDeleteVertexArrays(1, &spriteVAO);
+    if (spriteVBO) glDeleteBuffers(1, &spriteVBO);
+    if (spriteEBO) glDeleteBuffers(1, &spriteEBO);
+
+    // delete gridline objects
+    if (gridlineVAO) glDeleteVertexArrays(1, &gridlineVAO);
+    if (gridlineVBO) glDeleteBuffers(1, &gridlineVBO);
 }
 
 void ChunkRenderer::render(Camera& camera) {
-    // if (count == 0)
-    //     return;
-
     glm::mat4x4 vp =  camera.getViewProjMatrix();
 
-    texture.bind();
+    // int chunkX = 0.0f;
+    // int chunkY = 0.0f;
+    // float anchorX = (chunkX - chunkY) * CHUNK_SIZE * 0.50f;
+    // float anchorY = (chunkX + chunkY) * CHUNK_SIZE * 0.25f;
 
-    shader.use();
-    shader.setUniformMatrix4fv("uVP", 1, vp);
-    shader.setUniform1f("uTileSize", TILE_SIZE);
-    // shader.setUniform2f("uChunk");
+    // glm::vec2 tilePos = worldToTile(camera.getPosition(), TILE_SIZE);
+    // std::cout << tilePos.x << " " << tilePos.y << std::endl;
 
-    glBindVertexArray(VAO);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)capacity);
+    // render tile sprites
+    spriteShader.use();
+    gridlineShader.setUniform2f("uOrigin", 0.0f, 0.0f);
+    spriteShader.setUniformMatrix4fv("uVP", 1, vp);
+    spriteTexture.bind();
+    glBindVertexArray(spriteVAO);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, capacity);
+
+    // render tile gridlines
+    gridlineShader.use();
+    gridlineShader.setUniform2f("uOrigin", 0.0f, 0.0f);
+    // gridlineShader.setUniform4f("uColor", 1.0f, 0.0f, 0.0f, 1.0f);
+    gridlineShader.setUniform4f("uColor", 0.0f, 0.0f, 0.0f, 0.2f);
+    gridlineShader.setUniformMatrix4fv("uVP", 1, vp);
+    glBindVertexArray(gridlineVAO);
+    glDrawArraysInstanced(GL_LINE_STRIP, 0, 5, capacity);
+
+    // unbind
     glBindVertexArray(0);
 }
+
+
 
 } // namespace GFX

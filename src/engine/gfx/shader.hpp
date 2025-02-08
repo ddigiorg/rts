@@ -14,8 +14,8 @@ namespace GFX {
 class Shader {
 public:
     Shader() {};
-    Shader(const char* vertPath, const char* fragPath);
     ~Shader();
+    void load(const char* vertPath, const char* fragPath);
     void use();
     void setUniform1f(const GLchar* name, GLfloat v0);
     void setUniform2f(const GLchar* name, GLfloat v0, GLfloat v1);
@@ -30,7 +30,11 @@ private:
     GLuint program = 0;
 };
 
-Shader::Shader(const char* vertPath, const char* fragPath) {
+Shader::~Shader() {
+    if (program) glDeleteProgram(program);
+}
+
+void Shader::load(const char* vertPath, const char* fragPath) {
     GLuint vertShader = 0;
     GLuint fragShader = 0;
 
@@ -72,10 +76,6 @@ Shader::Shader(const char* vertPath, const char* fragPath) {
     // release shaders
     if (vertShader) glDeleteShader(vertShader);
     if (fragShader) glDeleteShader(fragShader);
-}
-
-Shader::~Shader() {
-    if (program) glDeleteProgram(program);
 }
 
 void Shader::use() {

@@ -37,9 +37,7 @@ private:
     Shader selectShader;
 };
 
-Cursor::Cursor()
-    : selectShader(CURSOR_SELECT_VERT_FILEPATH, CURSOR_SELECT_FRAG_FILEPATH)
-{
+Cursor::Cursor() {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
@@ -54,6 +52,8 @@ Cursor::Cursor()
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    selectShader.load(CURSOR_SELECT_VERT_FILEPATH, CURSOR_SELECT_FRAG_FILEPATH);
 }
 
 Cursor::~Cursor() {
