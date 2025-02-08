@@ -1,11 +1,12 @@
 #pragma once
 
-#include "ecs/manager.hpp"
-#include "game/components/global.hpp"
-#include "game/components/position.hpp"
-#include "game/components/size.hpp"
-#include "game/components/color.hpp"
-#include "gfx/quad_renderer.hpp"
+#include "engine/ecs/manager.hpp"
+#include "engine/gfx/quad_renderer.hpp"
+
+#include "game/ecs/components/global.hpp"
+#include "game/ecs/components/position.hpp"
+#include "game/ecs/components/size.hpp"
+#include "game/ecs/components/color.hpp"
 
 class SpriteUpdate : public ECS::System {
 public:

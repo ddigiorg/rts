@@ -56,9 +56,7 @@ GLuint QuadRenderer::indices[] = {
     2, 3, 0  // second triangle
 };
 
-QuadRenderer::QuadRenderer(size_t capacity)
-    : shader(QUAD_VERT_FILEPATH, QUAD_FRAG_FILEPATH)
-{
+QuadRenderer::QuadRenderer(size_t capacity) {
     this->capacity = capacity;
 
     // generate the opengl objects
@@ -106,6 +104,9 @@ QuadRenderer::QuadRenderer(size_t capacity)
     // unbind vertex array object
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    // setup shader
+    shader.load(QUAD_VERT_FILEPATH, QUAD_FRAG_FILEPATH);
 }
 
 QuadRenderer::~QuadRenderer() {

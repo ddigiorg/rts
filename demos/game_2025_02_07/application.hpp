@@ -1,23 +1,28 @@
 #pragma once
 
-#include "core/input_state.hpp"
-#include "core/sdl_manager.hpp"
-#include "ecs/manager.hpp"
-#include "game/components/global.hpp"
-#include "game/components/position.hpp"
-#include "game/components/velocity.hpp"
-#include "game/components/size.hpp"
-#include "game/components/color.hpp"
-#include "game/systems/sprite_initialize.hpp"
-#include "game/systems/sprite_update.hpp"
-#include "game/systems/movement.hpp"
-#include "game/events/events.hpp"
-#include "graphics/types.hpp"
-#include "graphics/camera.hpp"
-#include "graphics/cursor.hpp"
-#include "graphics/debug_screen.hpp"
-#include "graphics/quad_renderer.hpp"
-#include "utilities/timer.hpp"
+#include "engine/core/user_input.hpp"
+#include "engine/core/sdl_manager.hpp"
+#include "engine/ecs/manager.hpp"
+#include "engine/gfx/types.hpp"
+#include "engine/gfx/camera.hpp"
+#include "engine/gfx/cursor.hpp"
+#include "engine/gfx/debug_screen.hpp"
+#include "engine/gfx/quad_renderer.hpp"
+#include "engine/utilities/timer.hpp"
+
+#include "game/ecs/components/global.hpp"
+#include "game/ecs/components/position.hpp"
+#include "game/ecs/components/velocity.hpp"
+#include "game/ecs/components/size.hpp"
+#include "game/ecs/components/color.hpp"
+#include "game/ecs/systems/sprite_initialize.hpp"
+#include "game/ecs/systems/sprite_update.hpp"
+#include "game/ecs/systems/movement.hpp"
+#include "game/ecs/events/events.hpp"
+#include "game/ui/control_camera_player.hpp"
+#include "game/ui/control_camera_screen.hpp"
+#include "game/ui/control_debug_screen.hpp"
+
 
 #include <iostream>
 
@@ -32,9 +37,15 @@ public:
 private:
     Core::SDLManager sdl;
 
-    GFX::Camera camera;
+    GFX::Camera cameraPlayer;
+    GFX::Camera cameraScreen;
     GFX::Cursor cursor;
     GFX::DebugScreen debugScreen;
+
+    ControlCameraPlayer ctrlCameraPlayer;
+    ControlCameraScreen ctrlCameraScreen;
+    ControlDebugScreen ctrlDebugScreen;
+
     GFX::QuadRenderer quadRenderer;
 
     ECS::Manager ecs;
@@ -44,9 +55,12 @@ private:
 
 Application::Application()
     : sdl(),
-      camera(),
-      cursor(),
-      debugScreen(),
+      cameraPlayer(GFX::Camera::Type::Orthographic, GFX::Camera::Mode::Centered),
+      cameraScreen(GFX::Camera::Type::Orthographic, GFX::Camera::Mode::ViewPort),
+      debugScreen(true),
+      ctrlCameraPlayer(cameraPlayer),
+      ctrlCameraScreen(),
+      ctrlDebugScreen(),
       quadRenderer(2048)
 {
     std::cout << "initializing..." << std::endl;
@@ -79,8 +93,6 @@ Application::Application()
     // setup global singleton
     ecs.createSingleton<Global>();
     auto global = ecs.getSingletonData<Global>();
-    global->camera = &camera;
-    global->cursor = &cursor;
     global->quadRenderer = &quadRenderer;
 
     // setup entities
@@ -109,25 +121,28 @@ void Application::loop() {
 
     size_t frameCount = 0;
     glm::vec2 mousePosWorld = {0.0f, 0.0f};
-
     bool quit = false;
+    float dt = 1.0f;
+
     while (!quit) {
         timer.reset();
 
         // process events
-        Core::InputState input = sdl.processEvents();
+        Core::UserInput input = sdl.processEvents();
+
+        ctrlCameraPlayer.handleInputs(cameraPlayer, input, dt);
+        ctrlCameraScreen.handleInputs(cameraScreen, input);
+        ctrlDebugScreen.handleInputs(debugScreen, input);
 
         // update
-        camera.update(input);
-        cursor.update(input);
-        debugScreen.update(input);
+        cursor.update(cameraPlayer, input);
         ecs.triggerEvent<OnUpdate>();
 
         // render
         sdl.clear();
-        quadRenderer.render(camera);
-        cursor.render(camera);
-        // debugScreen.render(camera);
+        quadRenderer.render(cameraPlayer);
+        cursor.render(cameraPlayer);
+        // debugScreen.render(cameraScreen, lines);
         sdl.swap();
 
         // frameCount++;
