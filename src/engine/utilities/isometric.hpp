@@ -3,9 +3,11 @@
 #include <glm/glm.hpp>
 #include <cmath>
 
+// https://pikuma.com/blog/isometric-projection-in-games
+
 inline glm::vec2 tileToWorld(const glm::ivec2& tilePos, const glm::ivec2& tileSize) {
-    float worldX = (tilePos.x - tilePos.y) * tileSize.x * 0.5f;
-    float worldY = (tilePos.y + tilePos.x) * tileSize.y * 0.5f;
+    float worldX = (tilePos.x - tilePos.y) * (tileSize.x * 0.5f);
+    float worldY = (tilePos.y + tilePos.x) * (tileSize.y * 0.5f);
     return glm::vec2(worldX, worldY);
 }
 
