@@ -2,10 +2,7 @@
 
 #include "engine/core/types.hpp"
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 // https://learnopengl.com/Getting-started/Camera
@@ -13,16 +10,6 @@
 namespace GFX {
 
 constexpr glm::vec3 CAMERA_WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-
-// enum class ProjectionType {
-//     Orthographic,
-//     Perspective
-// };
-
-// enum class CameraMode {
-//     Centered,
-//     ViewPort
-// };
 
 struct Frustum {
     float l = -1.0f; // left

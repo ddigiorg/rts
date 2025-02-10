@@ -1,15 +1,17 @@
 #pragma once
 
 #include "engine/core/user_input.hpp"
-#include "engine/gfx/types.hpp"
 #include "engine/gfx/camera.hpp"
 #include "engine/gfx/shader.hpp"
 
 #include <GL/glew.h>
-#include <glm/vec2.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 
 namespace GFX {
+
+// shaders
+constexpr char* CURSOR_SELECT_VERT = "assets/shaders/cursor_select_vert.glsl";
+constexpr char* CURSOR_SELECT_FRAG = "assets/shaders/cursor_select_frag.glsl";
 
 class Cursor {
 public:
@@ -53,7 +55,7 @@ Cursor::Cursor() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    selectShader.load(CURSOR_SELECT_VERT_FILEPATH, CURSOR_SELECT_FRAG_FILEPATH);
+    selectShader.load(CURSOR_SELECT_VERT, CURSOR_SELECT_FRAG);
 }
 
 Cursor::~Cursor() {

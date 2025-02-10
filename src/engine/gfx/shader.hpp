@@ -21,6 +21,7 @@ public:
     void setUniform2f(const GLchar* name, GLfloat v0, GLfloat v1);
     void setUniform3f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2);
     void setUniform4f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+    void setUniform1ui(const GLchar* name, GLint v0);
     void setUniformMatrix4fv(const GLchar* name, const GLsizei count, const glm::mat4x4& value);
     void setUniformBlockBinding(const GLchar* name, const GLuint binding);
 
@@ -100,6 +101,11 @@ void Shader::setUniform3f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2
 void Shader::setUniform4f(const GLchar* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
     GLuint location = glGetUniformLocation(program, name);
     glUniform4f(location, v0, v1, v2, v3);
+}
+
+void Shader::setUniform1ui(const GLchar* name, GLint v0) {
+    GLuint location = glGetUniformLocation(program, name);
+    glUniform1ui(location, v0);
 }
 
 void Shader::setUniformMatrix4fv(const GLchar* name, const GLsizei count, const glm::mat4x4& value) {

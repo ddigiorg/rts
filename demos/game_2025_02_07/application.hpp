@@ -3,7 +3,6 @@
 #include "engine/core/user_input.hpp"
 #include "engine/core/sdl_manager.hpp"
 #include "engine/ecs/manager.hpp"
-#include "engine/gfx/types.hpp"
 #include "engine/gfx/camera.hpp"
 #include "engine/gfx/cursor.hpp"
 #include "engine/gfx/debug_screen.hpp"
@@ -22,7 +21,6 @@
 #include "game/ui/control_camera_player.hpp"
 #include "game/ui/control_camera_screen.hpp"
 #include "game/ui/control_debug_screen.hpp"
-
 
 #include <iostream>
 
@@ -157,6 +155,7 @@ void Application::loop() {
     // // https://gameprogrammingpatterns.com/game-loop.html
     // // https://gafferongames.com/post/fix_your_timestep/
     // // https://docs.unity3d.com/Manual/ExecutionOrder.html
+    // // https://www.gameludere.com/2019/11/01/game-loop/#4_Fixed_update_time_and_variable_rendering
     // // Note: game time is in milliseconds
     // uint64_t tSim = 0; // ms
     // uint64_t tPrevious = SDL_GetTicks64();
@@ -167,11 +166,7 @@ void Application::loop() {
     //     uint64_t tFrame = tCurrent - tPrevious;
     //     tPrevious = tCurrent;
     //     tLag = tFrame;
-
-    //     // TODO: figure out why middle mouse moving breaks...
-    //     // basically sometimes we update more than once per processInput
     //     _processInput();
-
     //     // game simulates at constant rate
     //     while (tLag >= MS_PER_UPDATE) {
     //         _update(tSim, MS_PER_UPDATE);

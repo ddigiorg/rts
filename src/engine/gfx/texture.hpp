@@ -1,6 +1,7 @@
 #pragma once
 
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -14,8 +15,7 @@ public:
     ~Texture();
     void load(const char* filepath, bool flip=false);
     void bind();
-    int getW() { return w; };
-    int getH() { return h; };
+    glm::ivec2 getSize() const { return glm::ivec2(w, h); };
 
 private:
     GLuint texture;

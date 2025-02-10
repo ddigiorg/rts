@@ -3,16 +3,15 @@
 #include "engine/gfx/camera.hpp"
 #include "engine/gfx/font.hpp"
 
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/glm.hpp>
 
 #include <string>
 #include <vector>
 #include <iostream>
 
 namespace GFX {
+
+constexpr char* DEBUGSCREEN_FONT = "assets/fonts/CommitMono-400-Regular.otf";
 
 enum class AnchorX {
     Left, Middle, Right
@@ -42,7 +41,7 @@ private:
     Font font;
 };
 
-DebugScreen::DebugScreen(bool isVisible) {
+DebugScreen::DebugScreen(bool isVisible) : font(DEBUGSCREEN_FONT) {
     this->isVisible = isVisible;
 }
 

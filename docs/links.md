@@ -25,3 +25,7 @@
 - https://gameprogrammingpatterns.com/game-loop.html
 - https://gafferongames.com/post/fix_your_timestep/
 - https://docs.unity3d.com/Manual/ExecutionOrder.html
+
+
+- https://pikuma.com/blog/isometric-projection-in-games
+- https://docs.overviewer.org/en/latest/design/designdoc/

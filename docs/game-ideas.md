@@ -39,8 +39,31 @@
 ## Resources
 
 - Each resource is a sprite on top of terrain (like aoe)
-- food, wood, stone, iron/ore, gold, oil, gems/crystal, etc. (maybe keep it basic to start).  
 - dirt for modifying terrain like minecraft (hard)
+
+high prio ideas
+
+- food
+- wood
+- stone
+- coal
+- iron
+- gold
+
+low prio ideas
+
+- dirt
+- water
+- gems
+- crystal
+- oil
+- obsidian
+- tin
+- copper
+- bronze
+- silver
+- flint
+- wool
 
 ## Path Finding
 

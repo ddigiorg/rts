@@ -1,14 +1,16 @@
 #pragma once
 
-#include "engine/gfx/types.hpp"
 #include "engine/gfx/camera.hpp"
 #include "engine/gfx/shader.hpp"
 #include "engine/utilities/assert.hpp"
 
 #include <GL/glew.h>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 
 namespace GFX {
+
+constexpr char* QUAD_VERT = "assets/shaders/quad_vert.glsl";
+constexpr char* QUAD_FRAG = "assets/shaders/quad_frag.glsl";
 
 // TODO: need to dynamically grow or shrink buffers depending on 2x the count
 
@@ -106,7 +108,7 @@ QuadRenderer::QuadRenderer(size_t capacity) {
     glBindVertexArray(0);
 
     // setup shader
-    shader.load(QUAD_VERT_FILEPATH, QUAD_FRAG_FILEPATH);
+    shader.load(QUAD_VERT, QUAD_FRAG);
 }
 
 QuadRenderer::~QuadRenderer() {

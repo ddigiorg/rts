@@ -1,11 +1,9 @@
 #pragma once
 
-#include "engine/gfx/types.hpp"
 #include "engine/gfx/shader.hpp"
 
 #include <GL/glew.h>
-#include <glm/vec2.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 #include <ft2build.h>
 #include FT_FREETYPE_H  
 
@@ -27,6 +25,10 @@
 
 namespace GFX {
 
+// shaders
+constexpr char* FONT_VERT = "assets/shaders/font_vert.glsl";
+constexpr char* FONT_FRAG = "assets/shaders/font_frag.glsl";
+
 struct Character {
     GLuint texture;
     glm::ivec2 size;
@@ -36,7 +38,7 @@ struct Character {
 
 class Font {
 public:
-    Font();
+    Font(const char* fontFilepath);
     ~Font();
     void render(
         const std::string& text,
@@ -54,12 +56,12 @@ private:
     std::map<char, Character> characters;
 };
 
-Font::Font() {
+Font::Font(const char* fontFilepath) {
     FT_Library ft;
     FT_Error error;
 
     // load shader
-    shader.load(FONT_VERT_FILEPATH, FONT_FRAG_FILEPATH);
+    shader.load(FONT_VERT, FONT_FRAG);
 
     // setup FreeType
     error = FT_Init_FreeType(&ft);
@@ -70,9 +72,9 @@ Font::Font() {
 
     // load font face
     FT_Face face;
-    if (FT_New_Face(ft, FONT_MONOTYPE_FILEPATH, 0, &face))
+    if (FT_New_Face(ft, fontFilepath, 0, &face))
     {
-        std::cout << "Error: FT_New_Face() failed to load font: " << FONT_MONOTYPE_FILEPATH << std::endl;  
+        std::cout << "Error: FT_New_Face() failed to load font: " << fontFilepath << std::endl;  
         exit(1);
     }
 
