@@ -1,8 +1,9 @@
 #version 460 core
-in vec3 vColor; // color from the vertex shader
+
+in vec3 fQuadColor;
 
 out vec4 FragColor;
 
 void main() {
-    FragColor = vec4(vColor, 1.0);
+    FragColor = vec4(fQuadColor, 1.0);
 }

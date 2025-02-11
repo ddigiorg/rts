@@ -69,7 +69,10 @@ public:
     void updateProjMatrix();
 
     // raycasting
-    glm::vec2 screenToWorld(float screenX, float screenY, float screenW, float screenH);
+    glm::vec2 screenToWorld(
+        float screenX, float screenY,
+        float screenW, float screenH
+    ) const;
 
     // getters
     const float getZoom() const { return zoomScale; };
@@ -222,11 +225,9 @@ void Camera::updateProjMatrix() {
 }
 
 glm::vec2 Camera::screenToWorld(
-        float screenX,
-        float screenY,
-        float screenW,
-        float screenH
-) {
+        float screenX, float screenY,
+        float screenW, float screenH
+) const {
 
     // convert to Normalized Device Coordinates (NDC)
     float ndcX = (2.0f * screenX) / screenW - 1.0f;

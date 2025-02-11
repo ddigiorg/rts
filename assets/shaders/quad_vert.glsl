@@ -1,15 +1,20 @@
 #version 460 core
-layout(location = 0) in vec2  aPos;    // quad vertex positions
-layout(location = 1) in vec2  aOffset; // per-instance offsets (positions)
-layout(location = 2) in float aSize;   // per-instance sizes
-layout(location = 3) in vec3  aColor;  // Per-instance colors
 
-out vec3 vColor; // pass the color to the fragment shader
+layout(location = 0) in vec2  aQuadVertexPosition;
+layout(location = 1) in vec2  aQuadOffset;
+layout(location = 2) in float aQuadSize;
+layout(location = 3) in vec3  aQuadColor;
+
+out vec3 fQuadColor;
 
 uniform mat4 uVP; // view projection matrix
 
 void main() {
-    vColor = aColor;
-    vec4 worldPosition = vec4((aPos * aSize/2) + aOffset, 0.0, 1.0);
-    gl_Position = uVP * worldPosition;
+
+    // calculate quad position
+    vec2 pos = (aQuadVertexPosition * aQuadSize * 0.5) + aQuadOffset;
+    gl_Position = uVP * vec4(pos, 0.0, 1.0);
+
+    // pass variables to fragment shader
+    fQuadColor = aQuadColor;
 }

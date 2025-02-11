@@ -1,16 +1,19 @@
-#include "core/sdl_manager.hpp"
+#include "engine/core/sdl_manager.hpp"
+#include "engine/core/user_input.hpp"
 
 #include <iostream>
 
+using namespace Core;
+
 int main() {
-    Core::SDLManager sdl;
+    SDLManager sdl;
 
     // loop
     bool quit = false;
     while (!quit) {
 
         // process events
-        Core::InputState input = sdl.processEvents();
+        UserInput input = sdl.processEvents();
 
         // mouse motion
         if(input.mouse.moved)

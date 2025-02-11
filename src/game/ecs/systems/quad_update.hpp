@@ -8,13 +8,13 @@
 #include "game/ecs/components/size.hpp"
 #include "game/ecs/components/color.hpp"
 
-class SpriteUpdate : public ECS::System {
+class QuadUpdate : public ECS::System {
 public:
     void run() override {
         auto global = ecs->getSingletonData<Global>();
         GFX::QuadRenderer* qr = global->quadRenderer;
 
-        qr->clear();
+        qr->resetCount();
 
         std::vector<ECS::Archetype*> archetypes = ecs->query({
             ECS::typeof(Position),
@@ -29,7 +29,7 @@ public:
                 auto sizes = archetype->getComponentDataArray<Size>(c);
                 auto colors = archetype->getComponentDataArray<Color>(c);
 
-                qr->append(numEntities, positions, sizes, colors);
+                qr->appendSubset(numEntities, positions, sizes, colors);
             }
         }
     }

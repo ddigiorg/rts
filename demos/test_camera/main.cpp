@@ -1,64 +1,59 @@
 #include "engine/core/sdl_manager.hpp"
 #include "engine/gfx/camera.hpp"
-#include "engine/gfx/cursor.hpp"
-#include "engine/gfx/debug_screen.hpp"
 #include "engine/gfx/quad_renderer.hpp"
+#include "engine/ui/cursor.hpp"
+#include "engine/ui/debug_overlay.hpp"
 
-#include "game/ui/control_camera_player.hpp"
-#include "game/ui/control_camera_screen.hpp"
-#include "game/ui/control_debug_screen.hpp"
+#include "game/input/player_camera_controller.hpp"
+#include "game/input/screen_camera_controller.hpp"
+#include "game/input/debug_overlay_controller.hpp"
 
 #include <string>
 
 using namespace Core;
 using namespace GFX;
+using namespace UI;
+
+inline void _setupDebugOverlayLines(std::vector<DebugOverlayLine>& lines) {
+    lines = {
+            DebugOverlayLine("Press ESC to quit.", {5.0f, -20.0f}),
+            DebugOverlayLine("Press arrow keys to move camera.", {5.0f, -40.0f}),
+            DebugOverlayLine("Move mouse to screen edge to move camera.", {5.0f, -60.0f}),
+            DebugOverlayLine("Press middle mouse button and move mouse to move camera.", {5.0f, -80.0f}),
+            DebugOverlayLine("Camera.XY(World): ", {5.0f, -100.0f}),
+        };
+}
+
+inline void _updateDebugOverlayLines(
+        const Camera& camera,
+        const UserInput& input,
+        std::vector<DebugOverlayLine>& lines
+) {
+        glm::vec3 cameraPos = camera.getPosition();
+        lines[4].text = "Camera.XY(World): (" + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ")";
+}
 
 int main() {
 
+    // setup sdl
     SDLManager sdl;
 
-    Camera cameraPlayer(Camera::Type::Orthographic, Camera::Mode::Centered);
-    Camera cameraScreen(Camera::Type::Orthographic, Camera::Mode::ViewPort);
-    Cursor cursor;
-    DebugScreen debugScreen(true);
+    // setup cameras
+    Camera playerCamera(Camera::Type::Orthographic, Camera::Mode::Centered);
+    Camera screenCamera(Camera::Type::Orthographic, Camera::Mode::ViewPort);
 
-    ControlCameraPlayer ctrlCameraPlayer(cameraPlayer);
-    ControlCameraScreen ctrlCameraScreen;
-    ControlDebugScreen ctrlDebugScreen;
+    // setup input controllers
+    PlayerCameraController playerCameraController;
+    ScreenCameraController screenCameraController;
+    DebugOverlayController debugOverlayController;
 
-    DebugScreenLine line0 = {
-        "Press ESC to quit.",
-        AnchorX::Left, AnchorY::Top,
-        {5.0f, -20.0f}
-    };
+    // setup user interface (ui)
+    DebugOverlay debugOverlay(true);
+    std::vector<DebugOverlayLine> lines;
+    _setupDebugOverlayLines(lines);
 
-    DebugScreenLine line1 = {
-        "Press arrow keys to move camera.",
-        AnchorX::Left, AnchorY::Top,
-        {5.0f, -40.0f}
-    };
-
-    DebugScreenLine line2 = {
-        "Press middle mouse button and move mouse to move camera.",
-        AnchorX::Left, AnchorY::Top,
-        {5.0f, -60.0f}
-    };
-
-    DebugScreenLine line3 = {
-        "Camera.XY(World): ",
-        AnchorX::Left, AnchorY::Top,
-        {5.0f, -80.0f}
-    };
-
-    DebugScreenLine line4 = {
-        "Mouse.XY(Screen): ",
-        AnchorX::Left, AnchorY::Top,
-        {5.0f, -100.0f}
-    };
-
-    std::vector<DebugScreenLine> lines = {line0, line1, line2, line3, line4};
-
-    QuadRenderer quadRenderer(1);
+    // setup game objects
+    QuadRenderer quadRenderer;
 
     struct Quad {
         float pos[2] = {0.0f, 0.0f};
@@ -66,38 +61,32 @@ int main() {
         float color[3] = {1.0f, 1.0f, 1.0f};
     } quad;
 
-    quadRenderer.clear();
-    quadRenderer.append(1, &quad.pos, &quad.size, &quad.color);
+    quadRenderer.resize(1);
+    quadRenderer.appendSubset(1, &quad.pos[0], &quad.size[0], &quad.color[0]);
 
+    // setup loop variables
     bool quit = false;
     float dt = 1.0f;
 
+    // loop
     while (!quit) {
+
+        // handle inputs
         UserInput input = sdl.processEvents();
+        playerCameraController.handleInputs(playerCamera, input, dt);
+        screenCameraController.handleInputs(screenCamera, input);
+        debugOverlayController.handleInputs(debugOverlay, input);
 
-        ctrlCameraPlayer.handleInputs(cameraPlayer, input, dt);
-        ctrlCameraScreen.handleInputs(cameraScreen, input);
-        ctrlDebugScreen.handleInputs(debugScreen, input);
+        // handle updates
+        _updateDebugOverlayLines(playerCamera, input, lines);
 
-        glm::vec3 pos = cameraPlayer.getPosition();
-        std::string strCamX = std::to_string(pos.x);
-        std::string strCamY = std::to_string(pos.y);
-        lines[3].text = "Camera.XY(World): (" + strCamX + ", " + strCamY + ")";
-
-        if (input.mouse.moved) {
-            std::string strMouX = std::to_string(input.mouse.x);
-            std::string strMouY = std::to_string(input.mouse.y);
-            lines[4].text = "Mouse.XY(Screen): (" + strMouX + ", " + strMouY + ")";
-        }
-
-        cursor.update(cameraPlayer, input);
-
+        // handle renders
         sdl.clear();
-        debugScreen.render(cameraScreen, lines);
-        quadRenderer.render(cameraPlayer);
-        cursor.render(cameraPlayer);
+        debugOverlay.render(screenCamera, lines);
+        quadRenderer.render(playerCamera);
         sdl.swap();
 
+        // handle quit
         quit = input.quit;
         if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
             quit = true;

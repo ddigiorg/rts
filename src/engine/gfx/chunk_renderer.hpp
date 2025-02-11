@@ -73,15 +73,17 @@ public:
     void render(Camera& camera);
 
 private:
-    void _setupSharedBuffers();
+    void _setupDataBuffers();
     void _setupBorderPipeline();
     void _setupGridlinesPipeline();
     void _setupSpritesPipeline();
 
-    // shared data buffers
+    // data buffers (shared across pipelines)
     unsigned int chunkOffsetsVBO; // (dynamic) stores absolute positions of each chunk relative to (0, 0)
     unsigned int tileOffsetsVBO;  // (static) stores relative positions of tiles within a chunk
     unsigned int tileTypesVBO;    // (dynamic) stores tile types per chunk
+    unsigned int chunkCapacity = 0;
+    unsigned int tileCapacity = 0;
 
     // chunk border pipeline
     unsigned int borderVAO = 0;
@@ -103,10 +105,6 @@ private:
     static unsigned int spritesIndices[6];
     Shader spritesShader;
     Texture spritesTexture;
-
-    // buffer capacities
-    unsigned int chunkCapacity = 0;
-    unsigned int tileCapacity = 0;
 };
 
 float ChunkRenderer::borderVertices[8] = {
@@ -140,13 +138,13 @@ ChunkRenderer::ChunkRenderer(const unsigned int numChunks) {
     chunkCapacity = numChunks;
     tileCapacity = TILE_COUNT * chunkCapacity;
 
-    _setupSharedBuffers();
+    _setupDataBuffers();
     _setupBorderPipeline();
     _setupGridlinesPipeline();
     _setupSpritesPipeline();
 }
 
-void ChunkRenderer::_setupSharedBuffers() {
+void ChunkRenderer::_setupDataBuffers() {
     std::vector<glm::vec2> chunkOffsets;
     std::vector<glm::vec2> tileOffsets;
     std::vector<GLubyte> tileTypes;
@@ -379,21 +377,21 @@ void ChunkRenderer::render(Camera& camera) {
     // get camera view projection matrix
     const glm::mat4 vp =  camera.getViewProjMatrix();
 
-    // render chunk sprites
+    // run chunk sprites pipeline
     spritesShader.use();
     spritesShader.setUniformMatrix4fv("uVP", 1, vp);
     spritesTexture.bind();
     glBindVertexArray(spritesVAO);
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, tileCapacity);
 
-    // render chunk gridlines
+    // run chunk gridlines pipeline
     gridlinesShader.use();
     gridlinesShader.setUniformMatrix4fv("uVP", 1, vp);
     glLineWidth(2.0f);
     glBindVertexArray(gridlinesVAO);
     glDrawArraysInstanced(GL_LINE_LOOP, 0, 5, tileCapacity);
 
-    // render chunk border
+    // run chunk border pipeline
     borderShader.use();
     borderShader.setUniformMatrix4fv("uVP", 1, vp);
     glLineWidth(5.0f);

@@ -8,9 +8,9 @@
 #include "game/ecs/components/size.hpp"
 #include "game/ecs/components/color.hpp"
 
-class SpriteInitialize : public ECS::System {
+class QuadInitialize : public ECS::System {
 public:
-    SpriteInitialize::SpriteInitialize()
+    QuadInitialize::QuadInitialize()
         : positionRNG(-100.0f, 100.0f),
           velocityRNG(-1.0f, 1.0f),
           sizeRNG(5.0f, 50.0f),
