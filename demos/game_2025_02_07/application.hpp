@@ -56,7 +56,7 @@ Application::Application()
       cameraPlayer(GFX::Camera::Type::Orthographic, GFX::Camera::Mode::Centered),
       cameraScreen(GFX::Camera::Type::Orthographic, GFX::Camera::Mode::ViewPort),
       debugScreen(true),
-      ctrlCameraPlayer(cameraPlayer),
+      ctrlCameraPlayer(),
       ctrlCameraScreen(),
       ctrlDebugScreen(),
       quadRenderer(2048)

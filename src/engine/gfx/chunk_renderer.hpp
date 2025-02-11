@@ -14,16 +14,16 @@
 
 namespace GFX {
 
-// shaders
-constexpr char* CHUNK_BORDER_VERT    = "assets/shaders/chunk_border_vert.glsl";
-constexpr char* CHUNK_BORDER_FRAG    = "assets/shaders/chunk_border_frag.glsl";
-constexpr char* CHUNK_GRIDLINES_VERT = "assets/shaders/chunk_gridlines_vert.glsl";
-constexpr char* CHUNK_GRIDLINES_FRAG = "assets/shaders/chunk_gridlines_frag.glsl";
-constexpr char* CHUNK_SPRITES_VERT   = "assets/shaders/chunk_sprites_vert.glsl";
-constexpr char* CHUNK_SPRITES_FRAG   = "assets/shaders/chunk_sprites_frag.glsl";
+// shader filepaths
+constexpr const char* CHUNK_BORDER_VERT    = "assets/shaders/chunk_border_vert.glsl";
+constexpr const char* CHUNK_BORDER_FRAG    = "assets/shaders/chunk_border_frag.glsl";
+constexpr const char* CHUNK_GRIDLINES_VERT = "assets/shaders/chunk_gridlines_vert.glsl";
+constexpr const char* CHUNK_GRIDLINES_FRAG = "assets/shaders/chunk_gridlines_frag.glsl";
+constexpr const char* CHUNK_SPRITES_VERT   = "assets/shaders/chunk_sprites_vert.glsl";
+constexpr const char* CHUNK_SPRITES_FRAG   = "assets/shaders/chunk_sprites_frag.glsl";
 
-// textures
-constexpr char* CHUNK_SPRITES_TEXT = "assets/images/chunk_sprites.png";
+// texture filepaths
+constexpr const char* CHUNK_SPRITES_TEXT = "assets/images/chunk_sprites.png";
 
 // tile constants
 constexpr unsigned int TILE_SIZE_X = 64.0f;
@@ -32,7 +32,7 @@ constexpr unsigned int TILE_COUNT_X = 16;
 constexpr unsigned int TILE_COUNT_Y = 16;
 constexpr unsigned int TILE_COUNT = TILE_COUNT_X * TILE_COUNT_Y;
 constexpr glm::vec2 TILE_SIZE = glm::vec2(TILE_SIZE_X, TILE_SIZE_Y);
-constexpr glm::vec4 TILE_OUTLINE_COLOR = glm::vec4(0.0f, 0.0f, 0.0f, 0.2f);
+constexpr glm::vec4 TILE_OUTLINE_COLOR = glm::vec4(0.0f, 0.0f, 0.0f, 0.1f);
 
 // chunk constants
 constexpr unsigned int CHUNK_SIZE_X = TILE_SIZE_X * TILE_COUNT_X;
@@ -86,13 +86,13 @@ private:
     // chunk border pipeline
     unsigned int borderVAO = 0;
     unsigned int borderVBO = 0;
-    static float borderVertices[10];
+    static float borderVertices[8];
     Shader borderShader;
 
     // tile gridlines pipeline
     unsigned int gridlinesVAO = 0;
     unsigned int gridlinesVBO = 0;
-    static float gridlinesVertices[10];
+    static float gridlinesVertices[8];
     Shader gridlinesShader;
 
     // tile sprites pipeline
@@ -109,20 +109,18 @@ private:
     unsigned int tileCapacity = 0;
 };
 
-float ChunkRenderer::borderVertices[10] = {
+float ChunkRenderer::borderVertices[8] = {
      0.0f*CHUNK_SIZE_X, 0.0f*CHUNK_SIZE_Y, // iso chunk bottom
      0.5f*CHUNK_SIZE_X, 0.5f*CHUNK_SIZE_Y, // iso chunk right
      0.0f*CHUNK_SIZE_X, 1.0f*CHUNK_SIZE_Y, // iso chunk top
     -0.5f*CHUNK_SIZE_X, 0.5f*CHUNK_SIZE_Y, // iso chunk left
-     0.0f*CHUNK_SIZE_X, 0.0f*CHUNK_SIZE_Y  // iso chunk bottom (close the line loop)
 };
 
-float ChunkRenderer::gridlinesVertices[10] = {
+float ChunkRenderer::gridlinesVertices[8] = {
      0.0f*TILE_SIZE_X, 0.0f*TILE_SIZE_Y, // iso tile bottom
      0.5f*TILE_SIZE_X, 0.5f*TILE_SIZE_Y, // iso tile right
      0.0f*TILE_SIZE_X, 1.0f*TILE_SIZE_Y, // iso tile top
     -0.5f*TILE_SIZE_X, 0.5f*TILE_SIZE_Y, // iso tile left
-     0.0f*TILE_SIZE_X, 0.0f*TILE_SIZE_Y  // iso tile bottom (close the line loop)
 };
 
 float ChunkRenderer::spritesVertices[16] = {
@@ -135,7 +133,7 @@ float ChunkRenderer::spritesVertices[16] = {
 
 unsigned int ChunkRenderer::spritesIndices[6] = {
     0, 1, 2, // first triangle of quad
-    2, 3, 0  // second triangle of quad
+    2, 3, 0, // second triangle of quad
 };
 
 ChunkRenderer::ChunkRenderer(const unsigned int numChunks) {
@@ -379,7 +377,7 @@ void ChunkRenderer::updateSubset(
 void ChunkRenderer::render(Camera& camera) {
 
     // get camera view projection matrix
-    glm::mat4x4 vp =  camera.getViewProjMatrix();
+    const glm::mat4 vp =  camera.getViewProjMatrix();
 
     // render chunk sprites
     spritesShader.use();
@@ -391,16 +389,16 @@ void ChunkRenderer::render(Camera& camera) {
     // render chunk gridlines
     gridlinesShader.use();
     gridlinesShader.setUniformMatrix4fv("uVP", 1, vp);
-    glLineWidth(1.0f);
+    glLineWidth(2.0f);
     glBindVertexArray(gridlinesVAO);
-    glDrawArraysInstanced(GL_LINE_STRIP, 0, 5, tileCapacity);
+    glDrawArraysInstanced(GL_LINE_LOOP, 0, 5, tileCapacity);
 
     // render chunk border
     borderShader.use();
     borderShader.setUniformMatrix4fv("uVP", 1, vp);
     glLineWidth(5.0f);
     glBindVertexArray(borderVAO);
-    glDrawArraysInstanced(GL_LINE_STRIP, 0, 5, chunkCapacity);
+    glDrawArraysInstanced(GL_LINE_LOOP, 0, 5, chunkCapacity);
 
     // unbind
     glLineWidth(1.0f);

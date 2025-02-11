@@ -26,8 +26,11 @@
 namespace GFX {
 
 // shaders
-constexpr char* FONT_VERT = "assets/shaders/font_vert.glsl";
-constexpr char* FONT_FRAG = "assets/shaders/font_frag.glsl";
+constexpr const char* FONT_VERT = "assets/shaders/font_vert.glsl";
+constexpr const char* FONT_FRAG = "assets/shaders/font_frag.glsl";
+
+// default font
+constexpr const char* FONT_DEFAULT_FONT = "assets/fonts/CommitMono-400-Regular.otf";
 
 struct Character {
     GLuint texture;
@@ -56,7 +59,7 @@ private:
     std::map<char, Character> characters;
 };
 
-Font::Font(const char* fontFilepath) {
+Font::Font(const char* fontFilepath = FONT_DEFAULT_FONT) {
     FT_Library ft;
     FT_Error error;
 

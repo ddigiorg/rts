@@ -69,12 +69,7 @@ public:
     void updateProjMatrix();
 
     // raycasting
-    glm::vec2 screenToWorldCoords(
-        float screenX,
-        float screenY,
-        float screenW,
-        float screenH
-    );
+    glm::vec2 screenToWorld(float screenX, float screenY, float screenW, float screenH);
 
     // getters
     const float getZoom() const { return zoomScale; };
@@ -226,7 +221,7 @@ void Camera::updateProjMatrix() {
     }
 }
 
-glm::vec2 Camera::screenToWorldCoords(
+glm::vec2 Camera::screenToWorld(
         float screenX,
         float screenY,
         float screenW,

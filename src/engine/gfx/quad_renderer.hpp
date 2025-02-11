@@ -9,8 +9,8 @@
 
 namespace GFX {
 
-constexpr char* QUAD_VERT = "assets/shaders/quad_vert.glsl";
-constexpr char* QUAD_FRAG = "assets/shaders/quad_frag.glsl";
+constexpr const char* QUAD_VERT = "assets/shaders/quad_vert.glsl";
+constexpr const char* QUAD_FRAG = "assets/shaders/quad_frag.glsl";
 
 // TODO: need to dynamically grow or shrink buffers depending on 2x the count
 

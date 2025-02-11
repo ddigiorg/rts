@@ -5,14 +5,13 @@
 
 #include <glm/vec2.hpp>
 
-class ControlCameraScreen {
+class ScreenCameraController {
 public:
     void handleInputs(GFX::Camera& camera, const Core::UserInput& input) {
 
-        // handle resize
+        // handle window resize
         if (input.window.resized) {
-            glm::vec2 size = {input.window.width, input.window.height};
-            camera.resize(size);
+            camera.resize(glm::vec2(input.window.width, input.window.height));
         }
     };
 };
