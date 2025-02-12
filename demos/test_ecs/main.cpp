@@ -2,26 +2,27 @@
 #include "engine/core/sdl_manager.hpp"
 #include "engine/ecs/manager.hpp"
 #include "engine/gfx/camera.hpp"
-#include "engine/gfx/quad_renderer.hpp"
 #include "engine/utilities/timer.hpp"
 
-// include input controllers
+// include game renderers
+#include "game/gfx/quads_renderer.hpp"
+
+// include game input controllers
 #include "game/input/player_camera_controller.hpp"
 #include "game/input/screen_camera_controller.hpp"
 
-// include ecs components
+// include game ecs components
 #include "game/ecs/components/global.hpp"
-#include "game/ecs/components/position.hpp"
+#include "game/ecs/components/transform.hpp"
 #include "game/ecs/components/velocity.hpp"
-#include "game/ecs/components/size.hpp"
 #include "game/ecs/components/color.hpp"
 
-// include ecs systems
+// include game ecs systems
 #include "game/ecs/systems/quad_initialize.hpp"
 #include "game/ecs/systems/quad_update.hpp"
 #include "game/ecs/systems/movement.hpp"
 
-// include ecs events
+// include game ecs events
 #include "game/ecs/events/events.hpp"
 
 using namespace Core;
@@ -43,8 +44,8 @@ int main() {
 
     // setup utility objects
     Timer timer;
-    QuadRenderer quadRenderer;
-    quadRenderer.resize(2048);
+    QuadsRenderer quadsRenderer;
+    quadsRenderer.resize(2048);
 
     timer.reset();
 
@@ -53,9 +54,8 @@ int main() {
 
     // setup ecs components
     ecs.registerComponent<Global>();
-    ecs.registerComponent<Position>();
+    ecs.registerComponent<Transform>();
     ecs.registerComponent<Velocity>();
-    ecs.registerComponent<Size>();
     ecs.registerComponent<Color>();
 
     // setup ecs systems
@@ -77,11 +77,11 @@ int main() {
     // setup global singleton
     ecs.createSingleton<Global>();
     auto global = ecs.getSingletonData<Global>();
-    global->quadRenderer = &quadRenderer;
+    global->quadsRenderer = &quadsRenderer;
 
     // setup entities
     for (size_t i = 0; i < 1000; i++) {
-        ecs.createEntity({typeof(Position), typeof(Velocity), typeof(Size), typeof(Color)});
+        ecs.createEntity({typeof(Transform), typeof(Velocity), typeof(Color)});
     }
 
     // handle ecs creation systems
@@ -109,7 +109,7 @@ int main() {
 
         // handle renders
         sdl.clear();
-        quadRenderer.render(playerCamera);
+        quadsRenderer.render(playerCamera);
         sdl.swap();
 
         // handle quit

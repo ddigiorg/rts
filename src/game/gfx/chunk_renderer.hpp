@@ -126,7 +126,7 @@ float ChunkRenderer::spritesVertices[16] = {
     -0.5f*TILE_SIZE_X, 0.0f*TILE_SIZE_Y,   0.0f, 0.0f, // quad bottom left
      0.5f*TILE_SIZE_X, 0.0f*TILE_SIZE_Y,   1.0f, 0.0f, // quad bottom right
      0.5f*TILE_SIZE_X, 1.0f*TILE_SIZE_Y,   1.0f, 1.0f, // quad top right
-    -0.5f*TILE_SIZE_X, 1.0f*TILE_SIZE_Y,   0.0f, 1.0f  // quad top left
+    -0.5f*TILE_SIZE_X, 1.0f*TILE_SIZE_Y,   0.0f, 1.0f, // quad top left
 };
 
 unsigned int ChunkRenderer::spritesIndices[6] = {

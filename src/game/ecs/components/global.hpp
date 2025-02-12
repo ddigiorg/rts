@@ -1,8 +1,11 @@
 #pragma once
 
 #include "engine/ecs/types.hpp"
-#include "engine/gfx/quad_renderer.hpp"
+#include "game/gfx/quads_renderer.hpp"
 
-struct Global : ECS::Component {
-    GFX::QuadRenderer* quadRenderer;
+using namespace ECS;
+using namespace GFX;
+
+struct Global : Component {
+    QuadsRenderer* quadsRenderer;
 };

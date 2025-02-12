@@ -40,6 +40,13 @@ add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
 target_link_libraries(${DEMO_NAME} PRIVATE engine)
 target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
+# test_sprite_rendering
+set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_sprite_rendering)
+get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+target_link_libraries(${DEMO_NAME} PRIVATE engine)
+target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
 # test_user_input
 set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_user_input)
 get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)

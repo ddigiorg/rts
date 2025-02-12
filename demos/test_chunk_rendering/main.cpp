@@ -1,9 +1,9 @@
 #include "engine/core/sdl_manager.hpp"
 #include "engine/gfx/camera.hpp"
-#include "engine/gfx/chunk_renderer.hpp"
 #include "engine/ui/cursor.hpp"
 #include "engine/ui/debug_overlay.hpp"
 
+#include "game/gfx/chunk_renderer.hpp"
 #include "game/input/player_camera_controller.hpp"
 #include "game/input/screen_camera_controller.hpp"
 #include "game/input/debug_overlay_controller.hpp"

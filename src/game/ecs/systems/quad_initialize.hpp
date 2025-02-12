@@ -3,12 +3,13 @@
 #include "engine/ecs/manager.hpp"
 #include "engine/utilities/random.hpp"
 
-#include "game/ecs/components/position.hpp"
+#include "game/ecs/components/transform.hpp"
 #include "game/ecs/components/velocity.hpp"
-#include "game/ecs/components/size.hpp"
 #include "game/ecs/components/color.hpp"
 
-class QuadInitialize : public ECS::System {
+using namespace ECS;
+
+class QuadInitialize : public System {
 public:
     QuadInitialize::QuadInitialize()
         : positionRNG(-100.0f, 100.0f),
@@ -18,61 +19,51 @@ public:
     {};
 
     void run() override {
-        std::vector<ECS::Archetype*> archetypes;
+        std::vector<Archetype*> archetypes;
 
-        // setup positions
-        archetypes = ecs->query({ECS::typeof(Position)});
-        for (ECS::Archetype* archetype : archetypes) {
+        // setup transform data
+        archetypes = ecs->query({typeof(Transform)});
+        for (Archetype* archetype : archetypes) {
             for (size_t c = 0; c < archetype->getNumChunks(); c++) {
-                size_t numEntities = archetype->getChunkNumEntities(c);
-                auto pos = archetype->getComponentDataArray<Position>(c);
-                for (size_t i = 0; i < numEntities; i++) {
-                    pos[i].x = positionRNG.get();
-                    pos[i].y = positionRNG.get();
+                size_t count = archetype->getChunkNumEntities(c);
+                auto transform = archetype->getComponentDataArray<Transform>(c);
+                for (size_t i = 0; i < count; i++) {
+                    float size = (float)(int)sizeRNG.get();
+                    transform[i].x = positionRNG.get();
+                    transform[i].y = positionRNG.get();
+                    transform[i].w = size;
+                    transform[i].h = size;
                 }
             }
         }
 
-        // setup velocities
-        archetypes = ecs->query({ECS::typeof(Velocity)});
-        for (ECS::Archetype* archetype : archetypes) {
+        // setup velocity data
+        archetypes = ecs->query({typeof(Velocity)});
+        for (Archetype* archetype : archetypes) {
             for (size_t c = 0; c < archetype->getNumChunks(); c++) {
-                size_t numEntities = archetype->getChunkNumEntities(c);
+                size_t count = archetype->getChunkNumEntities(c);
                 auto vel = archetype->getComponentDataArray<Velocity>(c);
-                for (size_t i = 0; i < numEntities; i++) {
+                for (size_t i = 0; i < count; i++) {
                     vel[i].x = velocityRNG.get();
                     vel[i].y = velocityRNG.get();
                 }
             }
         }
 
-        // setup sizes
-        archetypes = ecs->query({ECS::typeof(Size)});
-        for (ECS::Archetype* archetype : archetypes) {
+        // setup color data
+        archetypes = ecs->query({typeof(Color)});
+        for (Archetype* archetype : archetypes) {
             for (size_t c = 0; c < archetype->getNumChunks(); c++) {
-                size_t numEntities = archetype->getChunkNumEntities(c);
-                auto size = archetype->getComponentDataArray<Size>(c);
-                for (size_t i = 0; i < numEntities; i++) {
-                    size[i].size = (float)(int)sizeRNG.get();
-                }
-            }
-        }
-
-        // setup colors
-        archetypes = ecs->query({ECS::typeof(Color)});
-        for (ECS::Archetype* archetype : archetypes) {
-            for (size_t c = 0; c < archetype->getNumChunks(); c++) {
-                size_t numEntities = archetype->getChunkNumEntities(c);
+                size_t count = archetype->getChunkNumEntities(c);
                 auto color = archetype->getComponentDataArray<Color>(c);
-                for (size_t i = 0; i < numEntities; i++) {
+                for (size_t i = 0; i < count; i++) {
                     color[i].r = colorRNG.get();
                     color[i].g = colorRNG.get();
                     color[i].b = colorRNG.get();
                 }
             }
         }
-
-    }
+    };
 
 private:
     RandomFloatGenerator positionRNG;

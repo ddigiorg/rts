@@ -2,6 +2,8 @@
 
 #include "engine/ecs/types.hpp"
 
-struct Velocity : ECS::Component {
-    float x, y;
+using namespace ECS;
+
+struct Velocity : Component {
+    float x, y; // 2d velocity in the world
 };

@@ -1,9 +1,9 @@
 #include "engine/core/sdl_manager.hpp"
 #include "engine/gfx/camera.hpp"
-#include "engine/gfx/quad_renderer.hpp"
 #include "engine/ui/cursor.hpp"
 #include "engine/ui/debug_overlay.hpp"
 
+#include "game/gfx/quads_renderer.hpp"
 #include "game/input/player_camera_controller.hpp"
 #include "game/input/screen_camera_controller.hpp"
 #include "game/input/debug_overlay_controller.hpp"
@@ -53,16 +53,15 @@ int main() {
     _setupDebugOverlayLines(lines);
 
     // setup game objects
-    QuadRenderer quadRenderer;
+    QuadsRenderer quadsRenderer;
 
     struct Quad {
-        float pos[2] = {0.0f, 0.0f};
-        float size[1] = {128.0f};
+        float transform[4] = {0.0f, 0.0f, 128.0f, 128.0f};
         float color[3] = {1.0f, 1.0f, 1.0f};
     } quad;
 
-    quadRenderer.resize(1);
-    quadRenderer.appendSubset(1, &quad.pos[0], &quad.size[0], &quad.color[0]);
+    quadsRenderer.resize(1);
+    quadsRenderer.appendSubset(1, &quad.transform[0], &quad.color[0]);
 
     // setup loop variables
     bool quit = false;
@@ -83,7 +82,7 @@ int main() {
         // handle renders
         sdl.clear();
         debugOverlay.render(screenCamera, lines);
-        quadRenderer.render(playerCamera);
+        quadsRenderer.render(playerCamera);
         sdl.swap();
 
         // handle quit
