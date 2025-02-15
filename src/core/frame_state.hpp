@@ -13,10 +13,10 @@ struct GameStates {
 // TODO: need to make game events more robust
 struct SelectEvent {
     bool isActive = false;
-    float boxBegX = 0.0f;
-    float boxBegY = 0.0f;
-    float boxEndX = 0.0f;
-    float boxEndY = 0.0f;
+    float boxBegX = 0.0f; // mouse coords
+    float boxBegY = 0.0f; // mouse coords
+    float boxEndX = 0.0f; // mouse coords
+    float boxEndY = 0.0f; // mouse coords
 };
 
 // TODO: need to make game events more robust

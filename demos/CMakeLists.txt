@@ -7,54 +7,54 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/demos/bin)
 # Demos
 # ==============================================================================
 
-# test_ecs
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_ecs)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_ecs
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_ecs)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_game_loop
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_game_loop)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_game_loop
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_game_loop)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_input
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_input)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_input
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_input)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_render_chunks
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_chunks)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_render_chunks
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_chunks)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_render_markers
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_markers)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_render_markers
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_markers)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_render_sprites
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_sprites)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_render_sprites
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_sprites)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_ui
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_ui)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_ui
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_ui)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 # test_unit_selection
 set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_unit_selection)

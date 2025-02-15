@@ -30,12 +30,11 @@ public:
     void render(Camera& camera);
 
     bool getIsSelecting() const { return isSelecting; };
-    glm::vec2 getBoxBeg() const { return glm::vec2(boxBegX, boxBegY); };
-    glm::vec2 getBoxEnd() const { return glm::vec2(boxEndX, boxEndY); };
 
 private:
     void _setupBoxSelectPipeline();
     void _updateVertices();
+    void _updateSelectEvent(SelectEvent& select);
 
     bool isSelecting = false;
     bool mouseLPrev = false;
@@ -101,6 +100,14 @@ void Cursor::_updateVertices() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 }
 
+void Cursor::_updateSelectEvent(SelectEvent& select) {
+    select.isActive = true;
+    select.boxBegX = boxBegX;
+    select.boxBegY = boxBegY;
+    select.boxEndX = boxEndX;
+    select.boxEndY = boxEndY;
+}
+
 void Cursor::update(FrameState& frame) {
     const WindowInput& window = frame.input.window;
     const MouseInput& mouse = frame.input.mouse;
@@ -111,7 +118,7 @@ void Cursor::update(FrameState& frame) {
     if (mouseL && !mouseLPrev) {
         isSelecting = true;
         boxBegX = mouse.x;
-        boxBegY = window.height - mouse.y;
+        boxBegY = mouse.y;
         boxEndX = boxBegX;
         boxEndY = boxBegY;
         _updateVertices();
@@ -120,19 +127,14 @@ void Cursor::update(FrameState& frame) {
     // update selection box
     if (isSelecting) {
         boxEndX = mouse.x;
-        boxEndY = window.height - mouse.y;
+        boxEndY = mouse.y;
         _updateVertices();
     }
 
     // stop selecting
     if (!mouseL && mouseLPrev) {
         isSelecting = false;
-        SelectEvent& select = frame.events.select;
-        select.isActive = true;
-        select.boxBegX = boxBegX;
-        select.boxBegY = boxBegY;
-        select.boxEndX = boxEndX;
-        select.boxEndY = boxEndY;
+        _updateSelectEvent(frame.events.select);
     }
 
     mouseLPrev = mouseL;

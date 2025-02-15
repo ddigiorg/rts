@@ -58,21 +58,18 @@ inline glm::vec2 isoWorldToTile(
 // Collision
 // =============================================================================
 
-inline bool aabbIntersects(
-    const glm::vec2& posA,
-    const glm::vec2& sizeA,
-    const glm::vec2& posB,
-    const glm::vec2& sizeB
+inline bool checkAABBCollision(
+    const glm::vec2& posA, const glm::vec2& sizeA,
+    const glm::vec2& posB, const glm::vec2& sizeB
 ) {
-    return (
-        posA.x < posB.x + sizeB.x &&
-        posA.x + sizeA.x > posB.x &&
-        posA.y < posB.y + sizeB.y &&
-        posA.y + sizeA.y > posB.y
-    );
+    glm::vec2 maxA = posA + sizeA;
+    glm::vec2 maxB = posB + sizeB;
+
+    return !(maxA.x <= posB.x || posA.x >= maxB.x || 
+             maxA.y <= posB.y || posA.y >= maxB.y);
 }
 
-inline bool circleIntersects(
+inline bool checkCircleCollision(
     const glm::vec2& centerA,
     float radiusA,
     const glm::vec2& centerB,
