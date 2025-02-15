@@ -1,46 +1,35 @@
-// include engine objects
-#include "engine/core/sdl_manager.hpp"
-#include "engine/ecs/manager.hpp"
-#include "engine/gfx/camera.hpp"
-#include "engine/utilities/timer.hpp"
-
-// include game renderers
-#include "game/gfx/quads_renderer.hpp"
-
-// include game input controllers
-#include "game/input/player_camera_controller.hpp"
-#include "game/input/screen_camera_controller.hpp"
+#include "core/frame_state.hpp"
+#include "core/sdl_manager.hpp"
+#include "graphics/render/quads_renderer.hpp"
+#include "input/input_manager.hpp"
+#include "ui/ui_manager.hpp"
+#include "utils/timer.hpp"
 
 // include game ecs components
-#include "game/ecs/components/global.hpp"
-#include "game/ecs/components/transform.hpp"
-#include "game/ecs/components/velocity.hpp"
-#include "game/ecs/components/color.hpp"
+#include "core/components/global.hpp"
+#include "core/components/transform.hpp"
+#include "core/components/velocity.hpp"
+#include "core/components/color.hpp"
 
 // include game ecs systems
-#include "game/ecs/systems/quad_initialize.hpp"
-#include "game/ecs/systems/quad_update.hpp"
-#include "game/ecs/systems/movement.hpp"
+#include "core/systems/movement.hpp"
+#include "core/systems/quads_initialize.hpp"
+#include "core/systems/quads_update.hpp"
 
 // include game ecs events
-#include "game/ecs/events/events.hpp"
+#include "core/events/events.hpp"
 
 using namespace Core;
 using namespace ECS;
-using namespace GFX;
+// using namespace Graphics;
 
 int main() {
 
-    // setup sdl
-    SDLManager sdl;
-
-    // setup cameras
-    Camera playerCamera(Camera::Type::Orthographic, Camera::Mode::Centered);
-    Camera screenCamera(Camera::Type::Orthographic, Camera::Mode::ViewPort);
-
-    // setup input controllers
-    PlayerCameraController playerCameraController;
-    ScreenCameraController screenCameraController;
+    // setup managers
+    SDLManager sdlManager;
+    InputManager inputManager;
+    UIManager uiManager;
+    uiManager.toggleDebugOverlay();
 
     // setup utility objects
     Timer timer;
@@ -60,8 +49,8 @@ int main() {
 
     // setup ecs systems
     ecs.registerSystem<Movement>();
-    ecs.registerSystem<QuadInitialize>();
-    ecs.registerSystem<QuadUpdate>();
+    ecs.registerSystem<QuadsInitialize>();
+    ecs.registerSystem<QuadsUpdate>();
 
     // setup ecs events
     ecs.registerEvent<OnCreate>();
@@ -70,9 +59,9 @@ int main() {
     ecs.registerEvent<OnRender>();
 
     // subscribe systems to events
-    ecs.subscribeToEvent<OnCreate, QuadInitialize>();
+    ecs.subscribeToEvent<OnCreate, QuadsInitialize>();
     ecs.subscribeToEvent<OnUpdate, Movement>();
-    ecs.subscribeToEvent<OnUpdate, QuadUpdate>();
+    ecs.subscribeToEvent<OnUpdate, QuadsUpdate>();
 
     // setup global singleton
     ecs.createSingleton<Global>();
@@ -92,29 +81,29 @@ int main() {
 
     // setup loop variables
     bool quit = false;
-    float dt = 1.0f;
+    FrameState frame;
 
     // loop
     while (!quit) {
 
         // handle inputs
-        UserInput input = sdl.processEvents();
-        playerCameraController.handleInputs(playerCamera, input, dt);
-        screenCameraController.handleInputs(screenCamera, input);
+        frame.input = inputManager.processEvents();
 
         // handle updates
         timer.reset();
         ecs.triggerEvent<OnUpdate>();
         std::cout << "ecs loop time: " << timer.elapsed() << std::endl;
+        uiManager.update(frame);
 
         // handle renders
-        sdl.clear();
-        quadsRenderer.render(playerCamera);
-        sdl.swap();
+        sdlManager.clearWindow();
+        quadsRenderer.render(uiManager.getPlayerCamera());
+        uiManager.render();
+        sdlManager.swapWindowBuffers();
 
         // handle quit
-        quit = input.quit;
-        if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
+        quit = frame.input.quit;
+        if(frame.input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
             quit = true;
     }
 

@@ -4,7 +4,7 @@ project(MyGameEngine)
 # set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 
-# add engine source code
+# add source code
 add_subdirectory(src)
 
 # add demos

@@ -1,9 +1,9 @@
 #version 460 core
 
-layout(location = 0) in vec2 aQuadVertexPosition;
-layout(location = 1) in vec2 aQuadOffset;
-layout(location = 2) in vec2 aQuadSize;
-layout(location = 3) in vec3 aQuadColor;
+layout(location = 0) in vec2 aQuadVertexPosition; // TODO: change to aVertexPosition
+layout(location = 1) in vec2 aQuadOffset; // TODO: change to aWorldPosition
+layout(location = 2) in vec2 aQuadSize; // TODO: change to aScale
+layout(location = 3) in vec3 aQuadColor; // TODO: change to aColor
 
 out vec3 fQuadColor;
 

@@ -29,3 +29,9 @@
 
 - https://pikuma.com/blog/isometric-projection-in-games
 - https://docs.overviewer.org/en/latest/design/designdoc/
+
+
+- https://www.youtube.com/watch?v=ALL7AQ1MRas
+
+- https://wiki.factorio.com/Map_structure
+- https://wiki.factorio.com/Units

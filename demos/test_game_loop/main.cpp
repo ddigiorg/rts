@@ -1,7 +1,10 @@
-#include "engine/core/sdl_manager.hpp"
-#include "engine/utilities/timer.hpp"
+#include "core/frame_state.hpp"
+#include "core/sdl_manager.hpp"
+#include "input/input_manager.hpp"
+#include "utils/timer.hpp"
 
 using namespace Core;
+using namespace Input;
 
 int main() {
 
@@ -32,28 +35,29 @@ int main() {
     //     fps = (int)(1.0 / ((float)tFrame / 1000.0f));
     // }
 
-    // setup sdl
-    SDLManager sdl;
+    // setup managers
+    SDLManager sdlManager;
+    InputManager inputManager;
 
     // setup loop variables
     bool quit = false;
-    float dt = 1.0f;
+    FrameState frame;
 
     // loop
     while (!quit) {
 
         // handle inputs
-        UserInput input = sdl.processEvents();
+        frame.input = inputManager.processEvents();
 
         // handle updates
 
         // handle renders
-        sdl.clear();
-        sdl.swap();
+        sdlManager.clearWindow();
+        sdlManager.swapWindowBuffers();
 
         // handle quit
-        quit = input.quit;
-        if(input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
+        quit = frame.input.quit;
+        if(frame.input.keyboard.buttons[SDL_SCANCODE_ESCAPE])
             quit = true;
     }
 

@@ -1,5 +1,5 @@
-# define the engine as a header-only (interface) library
-add_library(engine INTERFACE)
+# define as header-only (interface) library
+add_library(game INTERFACE)
 
 # find the required dependencies
 find_package(Freetype REQUIRED)
@@ -10,7 +10,7 @@ find_package(OpenGL REQUIRED)
 find_package(SDL3 REQUIRED)
 
 # include directories
-target_include_directories(engine INTERFACE
+target_include_directories(game INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${FREETYPE_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
@@ -19,7 +19,7 @@ target_include_directories(engine INTERFACE
 )
 
 # link libraries
-target_link_libraries(engine INTERFACE
+target_link_libraries(game INTERFACE
     Freetype::Freetype
     GLEW::GLEW
     glm::glm
