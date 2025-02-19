@@ -12,6 +12,7 @@ find_package(SDL3 REQUIRED)
 # include directories
 target_include_directories(game INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${FASTNOISELITE_INCLUDE_DIR}
     ${FREETYPE_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${glm_INCLUDE_DIRS}

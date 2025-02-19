@@ -163,11 +163,12 @@ void MarkersRenderer::render(const Camera& camera) {
     shader.setUniform2f("uOffset", 0.0f, 0.0f);
     shader.setUniform4f("uColor", 1.0f, 1.0f, 1.0f, 1.0f);
     shader.setUniformMatrix4fv("uVP", 1, vp);
+    glLineWidth(2.0f);
     glBindVertexArray(VAO);
     glDrawArraysInstanced(GL_LINE_LOOP, 0, 4, (GLsizei)count);
 
-
-
+    // unbind
+    glLineWidth(1.0f);
     glBindVertexArray(0);
 
 }

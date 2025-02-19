@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/types.hpp"
 #include "core/frame_state.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/font.hpp"
@@ -51,6 +52,9 @@ DebugOverlay::DebugOverlay(bool isActive) : isActive(isActive) {
     lines.push_back(DebugOverlayLine("test", pt, {x, y}));
     lines.push_back(DebugOverlayLine("test", pt, {x, y+=spacing}));
     lines.push_back(DebugOverlayLine("test", pt, {x, y+=spacing}));
+    lines.push_back(DebugOverlayLine("test", pt, {x, y+=spacing}));
+    lines.push_back(DebugOverlayLine("test", pt, {x, y+=spacing}));
+    lines.push_back(DebugOverlayLine("test", pt, {x, y+=spacing}));
 }
 
 void DebugOverlay::update(const Camera& camera, FrameState& frame) {
@@ -58,22 +62,21 @@ void DebugOverlay::update(const Camera& camera, FrameState& frame) {
         const WindowInput& window = frame.input.window;
         const MouseInput& mouse = frame.input.mouse;
         const glm::vec3& cameraPos = camera.getPosition();
+
+        // TODO: clean this up
         glm::vec2 mouseWorldPos = camera.screenToWorld(mouse.x, mouse.y, window.width, window.height);
+        Position pos = Position{mouseWorldPos.x, mouseWorldPos.y};
+        Index mouseIdx = Index{(int)pos.x, (int)pos.y};
+        Index chunkIdx = chunkWorldToIndex(pos);
+        Index sectorIdx = sectorWorldToIndex(pos);
+        Index tileIdx = tileWorldToIndex(pos);
+
         lines[0].text = "Camera.XY(World): (" + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ")";
-        lines[1].text = "Mouse.XY(Screen): (" + std::to_string((int)mouse.x) + ", " + std::to_string((int)mouse.y) + ")";
+        lines[1].text = "Mouse.XY(Screen): (" + std::to_string(mouseIdx.x) + ", " + std::to_string(mouseIdx.y) + ")";
         lines[2].text = "Mouse.XY(World):  (" + std::to_string(mouseWorldPos.x) + ", " + std::to_string(mouseWorldPos.y) + ")";
-
-        // glm::vec2 posChunk = WorldToChunk(posWorld);
-        // glm::vec2 posTile = WorldToTile(posWorld);
-    
-        // // convert chunk/tile positions to integers
-        // int chunkX = (int)posChunk.x;
-        // int chunkY = (int)posChunk.y;
-        // int tileX = (int)posTile.x;
-        // int tileY = (int)posTile.y;
-
-        // lines[3].text = "Chunk.XY: (" + std::to_string(chunkX) + ", " + std::to_string(chunkY) + ")";
-        // lines[4].text = "Tile.XY: (" + std::to_string(tileX) + ", " + std::to_string(tileY) + ")";
+        lines[3].text = "Chunk.XY:  (" + std::to_string(chunkIdx.x) + ", " + std::to_string(chunkIdx.y) + ")";
+        lines[4].text = "Sector.XY: (" + std::to_string(sectorIdx.x) + ", " + std::to_string(sectorIdx.y) + ")";
+        lines[5].text = "Tile.XY:   (" + std::to_string(tileIdx.x) + ", " + std::to_string(tileIdx.y) + ")";
     }
 
     frame.states.isDebugActive = isActive;

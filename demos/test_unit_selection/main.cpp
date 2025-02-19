@@ -1,5 +1,6 @@
 #include "core/frame_state.hpp"
 #include "core/sdl_manager.hpp"
+#include "core/world_manager.hpp"
 #include "input/input_manager.hpp"
 #include "ui/ui_manager.hpp"
 #include "graphics/render/sprites_renderer.hpp"
@@ -28,6 +29,9 @@ int main() {
     InputManager inputManager;
     UIManager uiManager;
     uiManager.toggleDebugOverlay();
+
+    // setup game object managers
+    WorldManager worldManager;
 
     // setup game objects
     SpritesRenderer spritesRenderer;
@@ -62,6 +66,7 @@ int main() {
     // setup loop variables
     bool quit = false;
     FrameState frame;
+    const Camera& playerCamera =  uiManager.getPlayerCamera();
 
     // loop
     while (!quit) {
@@ -110,8 +115,8 @@ int main() {
         }
 
         // handle renders
-        const Camera& playerCamera =  uiManager.getPlayerCamera();
         sdlManager.clearWindow();
+        worldManager.render(playerCamera);
         spritesRenderer.render(playerCamera);
         markersRenderer.render(playerCamera);
         uiManager.render();

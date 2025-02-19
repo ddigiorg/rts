@@ -1,12 +1,12 @@
 #version 460 core
 
-in vec2 fTileVertexTexCoord;
+in vec2 fVertexTexCoord;
 in flat uint fTileType; // must always use flat for integer types
 
 out vec4 FragColor;
 
 uniform sampler2D spritesheet;
-uniform vec2 uTileSize;
+uniform vec2 uVertexSize;
 uniform vec2 uSheetSize;
 uniform uint uTilesPerRow;
 
@@ -18,9 +18,9 @@ void main() {
     uint sheetY = fTileType / uTilesPerRow;
 
     // compute tile texture coordinates
-    vec2 tileUVSize = uTileSize / uSheetSize;
+    vec2 tileUVSize = uVertexSize / uSheetSize;
     vec2 tileOffset = vec2(sheetX, sheetY) * tileUVSize;
-    vec2 tileTexCoord = fTileVertexTexCoord * tileUVSize + tileOffset;
+    vec2 tileTexCoord = fVertexTexCoord * tileUVSize + tileOffset;
 
     FragColor = texture(spritesheet, tileTexCoord);
 }

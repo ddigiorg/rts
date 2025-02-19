@@ -218,6 +218,8 @@ void SpritesRenderer::render(const Camera& camera) {
     glBindVertexArray(spritesVAO);
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)count);
     // glMultiDrawElementsIndirect // TODO: look into?
+
+    // unbind
     glBindVertexArray(0);
 }
 

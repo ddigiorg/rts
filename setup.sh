@@ -111,14 +111,15 @@ build_and_install_dependency() {
 mkdir -p "$DEPENDENCIES_SOURCE_PATH"
 
 # setup the download urls
+fastnoiselite_url="https://github.com/Auburn/FastNoiseLite/archive/refs/tags/v1.1.1.tar.gz"
 freetype_url="https://download.savannah.gnu.org/releases/freetype/freetype-2.13.3.tar.gz"
 glew_url="https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.zip"
 glm_url="https://github.com/g-truc/glm/archive/refs/tags/1.0.1.zip"
-# sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-2.30.12/SDL2-2.30.12.zip"
 sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-3.2.2/SDL3-3.2.2.zip"
 stb_url="https://github.com/nothings/stb.git"
 
 # download
+download_dependency "fastnoiselite" "$fastnoiselite_url"
 download_dependency "freetype" "$freetype_url"
 download_dependency "glew" "$glew_url"
 download_dependency "glm" "$glm_url"
@@ -151,6 +152,8 @@ freetype_install_path="$(find_dependency_in_path "freetype" "$DEPENDENCIES_INSTA
 glew_install_path="$(find_dependency_in_path "glew" "$DEPENDENCIES_INSTALL_PATH")"
 glm_install_path="$(find_dependency_in_path "glm" "$DEPENDENCIES_INSTALL_PATH")"
 sdl_install_path="$(find_dependency_in_path "sdl" "$DEPENDENCIES_INSTALL_PATH")"
+
+fastnoiselite_source_path="$(find_dependency_in_path "fastnoiselite" "$DEPENDENCIES_SOURCE_PATH")"
 stb_source_path="$(find_dependency_in_path "stb" "$DEPENDENCIES_SOURCE_PATH")"
 
 # generate the project build system 
@@ -158,6 +161,7 @@ cmake \
     -B $PROJECT_BUILD_PATH \
     -D PROJECT_DIR="$PROJECT_PATH" \
     -D CMAKE_PREFIX_PATH="$freetype_install_path;$glew_install_path;$glm_install_path;$sdl_install_path" \
+    -D FASTNOISELITE_INCLUDE_DIR="$fastnoiselite_source_path" \
     -D STB_INCLUDE_DIR="$stb_source_path" \
     -D SDL_BINARIES_DIR="$sdl_install_path/bin" \
     -D GLEW_BINARIES_DIR="$glew_install_path/bin"
