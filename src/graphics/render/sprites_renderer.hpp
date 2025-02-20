@@ -172,6 +172,7 @@ void SpritesRenderer::appendSubset(
         const void* texcoordsData
 ) {
     ASSERT(num + count <= capacity, "Requested data insertion out of bounds.");
+    if (num == 0) return;
 
     size_t elementSize = 0;
     size_t bufferOffset = 0;

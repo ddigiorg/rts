@@ -22,8 +22,10 @@ int main() {
 
     for (int y = 0; y < 16; y++) {
         for (int x = 0; x < 16; x++) {
-            Position pos = tileIndexToWorld(Index{x, y});
-            unitManager.createUnit(pos);
+            UnitConfig config {
+                tileIndexToWorld(Index{x, y}), // position
+            };
+            unitManager.create(config);
         }
     }
 

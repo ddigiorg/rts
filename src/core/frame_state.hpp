@@ -26,7 +26,7 @@ struct GameEvents {
 
 struct FrameState {
     float dt = 1.0f;
-    Input::UserInput input;
+    Input::UserInput input; // TODO: add inputPrev
     GameStates states;
     GameEvents events;
 };

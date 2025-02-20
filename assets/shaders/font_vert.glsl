@@ -5,6 +5,6 @@ out vec2 texcoord;
 uniform mat4 uMatrix;
 
 void main() {
-    gl_Position = uMatrix * vec4(vertex.xy, 0.0, 1.0);
+    gl_Position = uMatrix * vec4(vertex.xy, 1.0, 1.0);
     texcoord = vertex.zw;
 }

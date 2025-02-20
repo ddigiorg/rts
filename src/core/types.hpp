@@ -47,6 +47,10 @@ struct Position {
     float x, y;
 };
 
+struct Size {
+    float x, y;
+};
+
 struct Velocity {
     float x, y;
 };
@@ -132,17 +136,53 @@ inline Index tileWorldToIndex(const Position& world){
 // Collision Functions
 // =============================================================================
 
-inline bool checkAABBCollision(const Transform& a, const Transform& b) {
+inline bool detectAABBCollision(const Transform& a, const Transform& b) {
     return !(a.x + a.w <= b.x || a.x >= b.x + b.w || 
              a.y + a.h <= b.y || a.y >= b.y + b.h);
 }
 
-inline bool checkCircleCollision(const CircleCollider& a, const CircleCollider& b) {
-    float dx = a.x - b.x;
-    float dy = a.y - b.y;
+inline bool detectCircleCollision(const CircleCollider& a, const CircleCollider& b) {
+    float dx = b.x - a.x;
+    float dy = b.y - a.y;
     float distSquared = (dx * dx) + (dy * dy);
     float radiusSum = a.radius + b.radius;
     return distSquared < (radiusSum * radiusSum);
+}
+
+inline void resolveCircleCollision(CircleCollider& a, CircleCollider& b) {
+    float dx = b.x - a.x;
+    float dy = b.y - a.y;
+    float distSquared = (dx * dx) + (dy * dy);
+    float radiusSum = a.radius + b.radius;
+
+    // if no collision then exit
+    if (distSquared >= (radiusSum * radiusSum)) return;
+
+    // compute distance
+    float dist = std::sqrt(distSquared);
+    
+    // avoid division by zero for perfectly overlapping circles
+    constexpr float epsilon = 1e-6f;
+    if (dist < epsilon) {
+        dx = 1.0f; // arbitrary push direction
+        dy = 0.0f;
+        dist = 1.0f;
+    }
+
+    // compute penetration depth (overlap distance)
+    float overlap = radiusSum - dist;
+
+    // normalize the displacement vector
+    float invDist = 1.0f / dist;
+    float nx = dx * invDist;
+    float ny = dy * invDist;
+
+    // push both units away proportionally
+    float correction = overlap * 0.5f;
+    a.x -= nx * correction;
+    a.y -= ny * correction;
+    b.x += nx * correction;
+    b.y += ny * correction;
 }
 
 } // namespace Core

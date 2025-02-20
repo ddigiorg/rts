@@ -125,6 +125,7 @@ void MarkersRenderer::resize(size_t newCapacity) {
 
 void MarkersRenderer::appendSubset(const size_t num, const void* transformsData) {
     ASSERT(num + count <= capacity, "Requested data insertion out of bounds.");
+    if (num == 0) return;
 
     size_t elementSize = 0;
     size_t bufferOffset = 0;
