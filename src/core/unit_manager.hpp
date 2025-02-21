@@ -19,10 +19,11 @@ using namespace Input;
 namespace Core {
 
 constexpr const uint32_t UNIT_DEFAULT_CAPACITY = 32;
-constexpr const uint32_t UNIT_DEFAULT_SELECT_CAPACITY = 32;
+constexpr const uint32_t UNIT_DEFAULT_SELECT_CAPACITY = 64;
 constexpr const uint32_t UNIT_MAX_CAPACITY = 1024 * 20; // 20k units
 
 struct UnitConfig {
+    SpriteType type = CYAN;
     Position position = {0.0f, 0.0f};
     float scale = 32.0f;
 };
@@ -43,6 +44,7 @@ private:
     void _updateVelocities(FrameState& frame);
     void _updatePositions(FrameState& frame);
     void _updateCollisions();
+    void _updateTexCoords();
     void _updateRendering();
 
     // renderers
@@ -56,6 +58,7 @@ private:
     uint32_t count;
     uint32_t capacity;
     std::vector<ObjectID> ids;
+    std::vector<size_t> spriteOffsets;
     std::vector<bool> isMovings;
     std::vector<Transform> transforms;
     std::vector<TexCoord> texcoords;
@@ -81,6 +84,7 @@ UnitManager::UnitManager() {
     count = 0;
     capacity = UNIT_DEFAULT_CAPACITY;
     ids.resize(capacity);
+    spriteOffsets.resize(capacity);
     isMovings.resize(capacity);
     transforms.resize(capacity);
     texcoords.resize(capacity);
@@ -103,13 +107,16 @@ void UnitManager::create(const UnitConfig& config) {
     ObjectID id = units.create(idx);
 
     // initialize unit data
-    ids[idx]        = id;
-    isMovings[idx]  = false;
+    const size_t offset = SPRITE_OFFSETS[config.type];
+
+    ids[idx] = id;
+    spriteOffsets[idx] = offset;
+    isMovings[idx] = false;
     transforms[idx] = Transform{config.position.x, config.position.y, config.scale, config.scale};
-    texcoords[idx]  = TexCoord{0.0f, 0.5f, (64.0f / 320.0f), (64.0f / 128.0f)};
-    targets[idx]    = Position{0.0f, 0.0f};
+    texcoords[idx] = SPRITE_TEXCOORDS[offset];
+    targets[idx] = Position{0.0f, 0.0f};
     velocities[idx] = Velocity{0.0f, 0.0f};
-    colliders[idx]  = CircleCollider{config.position.x, config.position.y, config.scale * 0.5f};
+    colliders[idx] = CircleCollider{config.position.x, config.position.y, config.scale * 0.5f};
 }
 
 void UnitManager::remove(const ObjectID& removeID) {
@@ -121,13 +128,14 @@ void UnitManager::remove(const ObjectID& removeID) {
     if (removeIdx != lastIdx) {
         units.set(lastID, removeIdx);
         
-        ids[removeIdx]        = ids[lastIdx];
-        isMovings[removeIdx]  = isMovings[lastIdx];
+        ids[removeIdx] = ids[lastIdx];
+        spriteOffsets[removeIdx] = spriteOffsets[lastIdx];
+        isMovings[removeIdx] = isMovings[lastIdx];
         transforms[removeIdx] = transforms[lastIdx];
-        texcoords[removeIdx]  = texcoords[lastIdx];
-        targets[removeIdx]    = targets[lastIdx];
+        texcoords[removeIdx] = texcoords[lastIdx];
+        targets[removeIdx] = targets[lastIdx];
         velocities[removeIdx] = velocities[lastIdx];
-        colliders[removeIdx]  = colliders[lastIdx];
+        colliders[removeIdx] = colliders[lastIdx];
     }
 
     count--;
@@ -141,6 +149,7 @@ void UnitManager::update(FrameState& frame, const Camera& camera) {
     _updateVelocities(frame);
     _updatePositions(frame);
     _updateCollisions();
+    _updateTexCoords();
     _updateRendering();
 }
 
@@ -153,6 +162,7 @@ void UnitManager::_growCapacity() {
     uint32_t newCapacity = std::min(capacity * 2, UNIT_MAX_CAPACITY);
 
     ids.resize(newCapacity);
+    spriteOffsets.resize(newCapacity);
     isMovings.resize(newCapacity);
     transforms.resize(newCapacity);
     texcoords.resize(newCapacity);
@@ -231,15 +241,15 @@ void UnitManager::_updateTargets(FrameState& frame, const Camera& camera) {
 void UnitManager::_updateVelocities(FrameState& frame) {
     // TODO: put these somewhere
     const float dt = frame.dt;
-    const float speed = 2.0f;
-    const float tolerance = 1.0f;
+    const float speed = 2.5f;
+    const float tolerance = 1.0f; // TODO: need to tune this
 
     // update unit velocities
     for (uint32_t i = 0; i < count; i++) {
         if (!isMovings[i]) continue;
 
-        auto& transform = transforms[i];
-        auto& target = targets[i];
+        const auto& transform = transforms[i];
+        const auto& target = targets[i];
         auto& velocity = velocities[i];
 
         float dx = target.x - transform.x;
@@ -257,6 +267,12 @@ void UnitManager::_updateVelocities(FrameState& frame) {
         float invLength = 1.0f / length;
         velocity.x = dx * invLength * speed;
         velocity.y = dy * invLength * speed;
+
+        // TODO: implement smaller collision radii when moving
+        // if (isMovings[i])
+        //     collider.radius = 14.0f;
+        // else
+        //     collider.radius = 16.0f;
     }
 }
 
@@ -265,22 +281,16 @@ void UnitManager::_updatePositions(FrameState& frame) {
 
     // integrate velocity into position
     for (uint32_t i = 0; i < count; i++) {
+        const auto& velocity = velocities[i];
         auto& transform = transforms[i];
-        auto& velocity = velocities[i];
         auto& collider = colliders[i];
 
         transform.x += velocity.x * dt;
         transform.y += velocity.y * dt;
 
-        // TODO: figure out better way without repeating positions
+        // TODO: figure out better way without repeating positions in collider
         collider.x = transform.x;
         collider.y = transform.y;
-
-        // TODO: implement smaller collision radii when moving
-        // if (isMovings[i])
-        //     collider.radius = 14.0f;
-        // else
-        //     collider.radius = 16.0f;
     }
 }
 
@@ -298,6 +308,33 @@ void UnitManager::_updateCollisions() {
             transforms[j].x = colliders[j].x;
             transforms[j].y = colliders[j].y;
         }
+    }
+}
+
+void UnitManager::_updateTexCoords() {
+    constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979323846f;
+    constexpr float ANGLE_OFFSET = 22.5f;
+    constexpr float INV_ANGLE_STEP = 8.0f / 360.0f;
+
+    for (uint32_t i = 0; i < count; i++) {
+        const auto& offset = spriteOffsets[i];
+        const auto& velocity = velocities[i];
+        auto& texcoord = texcoords[i];
+
+        // if stationary keep the current texcoord
+        if (velocity.x == 0.0f && velocity.y == 0.0f) {
+            continue;
+        }
+
+        // compute angle
+        float angle = std::atan2(velocity.y, velocity.x) * RAD_TO_DEG;
+        angle = (angle < 0.0f) ? (angle + 360.0f) : angle; // normalize to (0, 360)
+
+        // compute index in the range [0, 7] without branching
+        int index = static_cast<int>((angle + ANGLE_OFFSET) * INV_ANGLE_STEP) & 7;
+
+        // directly access the lookup table
+        texcoord = SPRITE_TEXCOORDS[offset + index];
     }
 }
 

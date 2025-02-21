@@ -185,4 +185,74 @@ inline void resolveCircleCollision(CircleCollider& a, CircleCollider& b) {
     b.y += ny * correction;
 }
 
+// =============================================================================
+// Sprite Texture Coordinates
+// =============================================================================
+
+constexpr const size_t SPRITE_TYPE_COUNT = 2;
+constexpr const size_t SPRITE_COUNT = 16;
+constexpr const size_t SPRITE_SHEET_PIXELS_X = 320;
+constexpr const size_t SPRITE_SHEET_PIXELS_Y = 128;
+
+constexpr TexCoord computeTexCoord(int x, int y, int w, int h) {
+    return TexCoord{
+        float(x) / float(SPRITE_SHEET_PIXELS_X),
+        float(y) / float(SPRITE_SHEET_PIXELS_Y),
+        float(w) / float(SPRITE_SHEET_PIXELS_X),
+        float(h) / float(SPRITE_SHEET_PIXELS_Y)
+    };
+}
+
+enum SpriteType {
+    CYAN,
+    MAGENTA,
+};
+
+constexpr const std::array<size_t, SPRITE_TYPE_COUNT> SPRITE_OFFSETS = {
+    0, // CYAN
+    8, // MAGENTA
+};
+
+enum Sprite {
+    // cyan
+    SPRITE_CYAN_000,
+    SPRITE_CYAN_045,
+    SPRITE_CYAN_090,
+    SPRITE_CYAN_135,
+    SPRITE_CYAN_180,
+    SPRITE_CYAN_225,
+    SPRITE_CYAN_270,
+    SPRITE_CYAN_315,
+    // magenta
+    SPRITE_MAGENTA_000,
+    SPRITE_MAGENTA_045,
+    SPRITE_MAGENTA_090,
+    SPRITE_MAGENTA_135,
+    SPRITE_MAGENTA_180,
+    SPRITE_MAGENTA_225,
+    SPRITE_MAGENTA_270,
+    SPRITE_MAGENTA_315,
+};
+
+constexpr const std::array<TexCoord, SPRITE_COUNT> SPRITE_TEXCOORDS = {{
+    // cyan
+    computeTexCoord(128, 64,  64, 64), // SPRITE_CYAN_000
+    computeTexCoord(192, 64,  64, 64), // SPRITE_CYAN_045
+    computeTexCoord(256, 64,  64, 64), // SPRITE_CYAN_090
+    computeTexCoord(256, 64, -64, 64), // SPRITE_CYAN_135
+    computeTexCoord(192, 64, -64, 64), // SPRITE_CYAN_180
+    computeTexCoord(128, 64, -64, 64), // SPRITE_CYAN_225
+    computeTexCoord(  0, 64,  64, 64), // SPRITE_CYAN_270
+    computeTexCoord( 64, 64,  64, 64), // SPRITE_CYAN_315
+    // magenta
+    computeTexCoord(128,  0,  64, 64), // SPRITE_MAGENTA_000
+    computeTexCoord(192,  0,  64, 64), // SPRITE_MAGENTA_045
+    computeTexCoord(256,  0,  64, 64), // SPRITE_MAGENTA_090
+    computeTexCoord(256,  0, -64, 64), // SPRITE_MAGENTA_135
+    computeTexCoord(192,  0, -64, 64), // SPRITE_MAGENTA_180
+    computeTexCoord(128,  0, -64, 64), // SPRITE_MAGENTA_225
+    computeTexCoord(  0,  0,  64, 64), // SPRITE_MAGENTA_270
+    computeTexCoord( 64,  0,  64, 64), // SPRITE_MAGENTA_315
+}};
+
 } // namespace Core
