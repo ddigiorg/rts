@@ -26,11 +26,11 @@
 namespace Graphics {
 
 // shaders
-constexpr const char* FONT_VERT = "assets/shaders/font_vert.glsl";
-constexpr const char* FONT_FRAG = "assets/shaders/font_frag.glsl";
+constexpr const char* FONT_VERT = "data/shaders/font.vert";
+constexpr const char* FONT_FRAG = "data/shaders/font.frag";
 
 // default font
-constexpr const char* FONT_DEFAULT_FONT = "assets/fonts/CommitMono-400-Regular.otf";
+constexpr const char* FONT_DEFAULT_FONT = "data/fonts/CommitMono-400-Regular.otf";
 
 struct Character {
     GLuint texture;

@@ -4,8 +4,8 @@
 #include "core/frame_state.hpp"
 #include "core/object_manager.hpp"
 #include "graphics/camera.hpp"
-#include "graphics/render/markers_renderer.hpp"
-#include "graphics/render/sprites_renderer.hpp"
+#include "graphics/render/quad_renderer.hpp"
+#include "graphics/render/sprite_renderer.hpp"
 #include "input/user_input.hpp"
 
 #include <array>
@@ -23,9 +23,9 @@ constexpr const uint32_t UNIT_DEFAULT_SELECT_CAPACITY = 64;
 constexpr const uint32_t UNIT_MAX_CAPACITY = 1024 * 20; // 20k units
 
 struct UnitConfig {
-    SpriteType type = CYAN;
+    SpriteType type = UNIT_CYAN;
     Position position = {0.0f, 0.0f};
-    float scale = 32.0f;
+    Scale scale = {32.0f, 32.0f};
 };
 
 class UnitManager {
@@ -47,9 +47,13 @@ private:
     void _updateTexCoords();
     void _updateRendering();
 
+    // constants
+    const Color selectColor = Color{1.0f, 1.0f, 1.0f, 1.0f};
+    const float selectLineWidth = 2.0f;
+
     // renderers
-    MarkersRenderer markersRenderer;
-    SpritesRenderer spritesRenderer;
+    QuadRenderer selectRenderer;
+    SpriteRenderer spriteRenderer;
 
     // unit manager
     ObjectManager units;
@@ -60,16 +64,17 @@ private:
     std::vector<ObjectID> ids;
     std::vector<size_t> spriteOffsets;
     std::vector<bool> isMovings;
-    std::vector<Transform> transforms;
+    std::vector<Position> positions;
+    std::vector<Scale> scales;
     std::vector<TexCoord> texcoords;
     std::vector<Position> targets;
     std::vector<Velocity> velocities;
     std::vector<CircleCollider> colliders;
 
     // selected unit data
-    uint32_t selectedCount;
-    uint32_t selectedCapacity;
-    std::array<ObjectID, UNIT_DEFAULT_SELECT_CAPACITY> selectedIDs;
+    uint32_t selectCount;
+    uint32_t selectCapacity;
+    std::array<ObjectID, UNIT_DEFAULT_SELECT_CAPACITY> selectIDs;
 
     // previous frame key presses
     bool mouseRightPrev;
@@ -86,17 +91,21 @@ UnitManager::UnitManager() {
     ids.resize(capacity);
     spriteOffsets.resize(capacity);
     isMovings.resize(capacity);
-    transforms.resize(capacity);
+    positions.resize(capacity);
+    scales.resize(capacity);
     texcoords.resize(capacity);
     targets.resize(capacity);
     velocities.resize(capacity);
     colliders.resize(capacity);
-    spritesRenderer.resize(capacity);
+    spriteRenderer.setCapacity(capacity);
 
     // setup selected unit data
-    selectedCount = 0;
-    selectedCapacity = UNIT_DEFAULT_SELECT_CAPACITY;
-    markersRenderer.resize(selectedCapacity);
+    selectCount = 0;
+    selectCapacity = UNIT_DEFAULT_SELECT_CAPACITY;
+    selectRenderer.setCapacity(selectCapacity);
+
+    for (uint16_t i = 0; i < selectCapacity; i++)
+        selectRenderer.updateColorData(i, 1, &selectColor);
 }
 
 void UnitManager::create(const UnitConfig& config) {
@@ -112,11 +121,12 @@ void UnitManager::create(const UnitConfig& config) {
     ids[idx] = id;
     spriteOffsets[idx] = offset;
     isMovings[idx] = false;
-    transforms[idx] = Transform{config.position.x, config.position.y, config.scale, config.scale};
+    positions[idx] = Position{config.position.x, config.position.y, 0.5f}; // TODO: update z buffer
+    scales[idx] = config.scale;
     texcoords[idx] = SPRITE_TEXCOORDS[offset];
-    targets[idx] = Position{0.0f, 0.0f};
+    targets[idx] = Position{0.0f, 0.0f, 0.0f};
     velocities[idx] = Velocity{0.0f, 0.0f};
-    colliders[idx] = CircleCollider{config.position.x, config.position.y, config.scale * 0.5f};
+    colliders[idx] = CircleCollider{config.position.x, config.position.y, config.scale.x * 0.5f};
 }
 
 void UnitManager::remove(const ObjectID& removeID) {
@@ -131,7 +141,8 @@ void UnitManager::remove(const ObjectID& removeID) {
         ids[removeIdx] = ids[lastIdx];
         spriteOffsets[removeIdx] = spriteOffsets[lastIdx];
         isMovings[removeIdx] = isMovings[lastIdx];
-        transforms[removeIdx] = transforms[lastIdx];
+        positions[removeIdx] = positions[lastIdx];
+        scales[removeIdx] = scales[lastIdx];
         texcoords[removeIdx] = texcoords[lastIdx];
         targets[removeIdx] = targets[lastIdx];
         velocities[removeIdx] = velocities[lastIdx];
@@ -154,8 +165,8 @@ void UnitManager::update(FrameState& frame, const Camera& camera) {
 }
 
 void UnitManager::render(const Camera& camera) {
-    markersRenderer.render(camera);
-    spritesRenderer.render(camera);
+    selectRenderer.renderOutline(camera, selectLineWidth);
+    spriteRenderer.render(camera);
 }
 
 void UnitManager::_growCapacity() {
@@ -164,12 +175,13 @@ void UnitManager::_growCapacity() {
     ids.resize(newCapacity);
     spriteOffsets.resize(newCapacity);
     isMovings.resize(newCapacity);
-    transforms.resize(newCapacity);
+    positions.resize(newCapacity);
+    scales.resize(newCapacity);
     texcoords.resize(newCapacity);
     targets.resize(newCapacity);
     velocities.resize(newCapacity);
     colliders.resize(newCapacity);
-    spritesRenderer.resize(newCapacity);
+    spriteRenderer.setCapacity(newCapacity);
 
     capacity = newCapacity;
 }
@@ -179,10 +191,10 @@ void UnitManager::_handleDeletion(FrameState& frame) {
     bool keyDelete = keyboard.buttons[SDL_SCANCODE_DELETE];
 
     if (keyDelete && !keyDeletePrev) {
-        for (uint32_t i = 0; i < selectedCount; i++) {
-            remove(selectedIDs[i]);
+        for (uint32_t i = 0; i < selectCount; i++) {
+            remove(selectIDs[i]);
         }
-        selectedCount = 0;
+        selectCount = 0;
     }
 
     keyDeletePrev = keyDelete;
@@ -199,18 +211,19 @@ void UnitManager::_updateSelected(FrameState& frame, const Camera& camera) {
     glm::vec2 endWorldPos = camera.screenToWorld(select.boxEndX, select.boxEndY, window.width, window.height);
 
     // compute selection box
-    glm::vec2 boxPos = glm::min(begWorldPos, endWorldPos);
-    glm::vec2 boxSize = glm::abs(endWorldPos - begWorldPos);
-    Transform boxTransform = {boxPos.x, boxPos.y, boxSize.x, boxSize.y};
+    glm::vec2 pos = glm::min(begWorldPos, endWorldPos);
+    glm::vec2 scale = glm::abs(endWorldPos - begWorldPos);
+    Position boxPos{pos.x, pos.y};
+    Scale boxScale{scale.x, scale.y};
 
     // reset selected count
-    selectedCount = 0;
+    selectCount = 0;
 
     // compute unit collisions with selection box
     for (uint32_t i = 0; i < count; i++) {
-        if (detectAABBCollision(boxTransform, transforms[i])) {
-            if (selectedCount < selectedCapacity)
-                selectedIDs[selectedCount++] = ids[i];
+        if (detectAABBCollision(boxPos, boxScale, positions[i], scales[i])) {
+            if (selectCount < selectCapacity)
+                selectIDs[selectCount++] = ids[i];
             else
                 break;
         }
@@ -224,11 +237,11 @@ void UnitManager::_updateTargets(FrameState& frame, const Camera& camera) {
     const WindowInput& window = frame.input.window;
     bool mouseRight = (mouse.buttons & SDL_BUTTON_RMASK) != 0;
 
-    if((mouseRight && !mouseRightPrev) || selectedCount == 0) {
+    if((mouseRight && !mouseRightPrev) || selectCount == 0) {
         glm::vec2 target = camera.screenToWorld(mouse.x, mouse.y, window.width, window.height);
 
-        for (uint32_t i = 0; i < selectedCount; i++) {
-            ObjectID& id = selectedIDs[i];
+        for (uint32_t i = 0; i < selectCount; i++) {
+            ObjectID& id = selectIDs[i];
             uint32_t idx = units.get(id);
             isMovings[idx] = true;
             targets[idx] = {target.x, target.y};
@@ -248,12 +261,12 @@ void UnitManager::_updateVelocities(FrameState& frame) {
     for (uint32_t i = 0; i < count; i++) {
         if (!isMovings[i]) continue;
 
-        const auto& transform = transforms[i];
+        const auto& position = positions[i];
         const auto& target = targets[i];
         auto& velocity = velocities[i];
 
-        float dx = target.x - transform.x;
-        float dy = target.y - transform.y;
+        float dx = target.x - position.x;
+        float dy = target.y - position.y;
         float length = std::sqrt(dx * dx + dy * dy);
 
         // stop moving when close enough to target
@@ -282,15 +295,15 @@ void UnitManager::_updatePositions(FrameState& frame) {
     // integrate velocity into position
     for (uint32_t i = 0; i < count; i++) {
         const auto& velocity = velocities[i];
-        auto& transform = transforms[i];
+        auto& position = positions[i];
         auto& collider = colliders[i];
 
-        transform.x += velocity.x * dt;
-        transform.y += velocity.y * dt;
+        position.x += velocity.x * dt;
+        position.y += velocity.y * dt;
 
         // TODO: figure out better way without repeating positions in collider
-        collider.x = transform.x;
-        collider.y = transform.y;
+        collider.x = position.x;
+        collider.y = position.y;
     }
 }
 
@@ -303,10 +316,10 @@ void UnitManager::_updateCollisions() {
             resolveCircleCollision(colliders[i], colliders[j]);
 
             // TODO: figure out better way without repeating positions
-            transforms[i].x = colliders[i].x;
-            transforms[i].y = colliders[i].y;
-            transforms[j].x = colliders[j].x;
-            transforms[j].y = colliders[j].y;
+            positions[i].x = colliders[i].x;
+            positions[i].y = colliders[i].y;
+            positions[j].x = colliders[j].x;
+            positions[j].y = colliders[j].y;
         }
     }
 }
@@ -340,17 +353,20 @@ void UnitManager::_updateTexCoords() {
 
 void UnitManager::_updateRendering() {
 
-    // update markers
-    markersRenderer.resetCount();
-    for (uint32_t i = 0; i < selectedCount; i++) {
-        ObjectID& id = selectedIDs[i];
+    // update select
+    for (uint32_t i = 0; i < selectCount; i++) {
+        ObjectID& id = selectIDs[i];
         uint32_t idx = units.get(id);
-        markersRenderer.appendSubset(1, &transforms[idx]);
+        selectRenderer.updatePositionData(i, 1, &positions[idx]);
+        selectRenderer.updateScaleData(i, 1, &scales[idx]);
     }
+    selectRenderer.setCount(selectCount);
 
     // update sprites
-    spritesRenderer.resetCount();
-    spritesRenderer.appendSubset(count, &transforms[0], &texcoords[0]);
+    spriteRenderer.updatePositionData(0, count, &positions[0]);
+    spriteRenderer.updateScaleData(0, count, &scales[0]);
+    spriteRenderer.updateTexCoordData(0, count, &texcoords[0]);
+    spriteRenderer.setCount(count);
 }
 
 } // namespace Core

@@ -4,3 +4,5 @@
 - cull all sprites not in view of camera
 - implement uniform spatial partitioning
 - implement unit formations
+
+- build process failed on linux laptop... needs fix

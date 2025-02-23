@@ -1,19 +1,14 @@
+#include "core/types.hpp"
 #include "core/frame_state.hpp"
 #include "core/sdl_manager.hpp"
 #include "input/input_manager.hpp"
 #include "ui/ui_manager.hpp"
-#include "graphics/render/sprites_renderer.hpp"
+#include "graphics/render/sprite_renderer.hpp"
+
+#include <vector>
 
 using namespace Core;
 // using namespace Graphics;
-
-struct SpriteTransform {
-    float x, y, w, h;
-};
-
-struct SpriteTexCoord {
-    float u, v, w, h;
-};
 
 int main() {
 
@@ -23,29 +18,40 @@ int main() {
     UIManager uiManager;
     uiManager.toggleDebugOverlay();
 
-    // setup game objects
-    SpritesRenderer spritesRenderer;
-    spritesRenderer.resize(4);
+    // setup sprite renderer
+    size_t capacity = 4;
+    size_t count = 4;
+    SpriteRenderer spriteRenderer;
+    spriteRenderer.setCapacity(capacity);
+    spriteRenderer.setCount(count);
 
-    // white sprite
-    SpriteTransform transform0{24.0f, 24.0f, 32.0f, 64.0f};
-    SpriteTexCoord texcoord0{0.0f, 0.0f, 0.25f, 1.0f};
-    spritesRenderer.appendSubset(1, &transform0, &texcoord0);
+    std::vector<Position> positions(count);
+    std::vector<Scale> scales(count);
+    std::vector<TexCoord> texcoords(count);
 
-    // red sprite
-    SpriteTransform transform1{16.0f, 16.0f, 32.0f, 64.0f};
-    SpriteTexCoord texcoord1{0.25f, 0.0f, 0.25f, 1.0f};
-    spritesRenderer.appendSubset(1, &transform1, &texcoord1);
+    // sprite: terrain grass
+    positions[0] = Position{0.0f, 0.0f, 0.0f};
+    scales[0] = Scale{32.0f, 32.0f};
+    texcoords[0] = SPRITE_TEXCOORDS[SPRITE_TERRAIN_GRASS];
 
-    // green sprite
-    SpriteTransform transform2{8.0f, 8.0f, 32.0f, 64.0f};
-    SpriteTexCoord texcoord2{0.5f, 0.0f, 0.25f, 1.0f};
-    spritesRenderer.appendSubset(1, &transform2, &texcoord2);
+    // sprite: terrain water
+    positions[1] = Position{32.0f, 0.0f, 0.0f};
+    scales[1] = Scale{32.0f, 32.0f};
+    texcoords[1] = SPRITE_TEXCOORDS[SPRITE_TERRAIN_WATER];
 
-    // blue sprite
-    SpriteTransform transform3{0.0f, 0.0f, 32.0f, 64.0f};
-    SpriteTexCoord texcoord3{0.75f, 0.0f, 0.25f, 1.0f};
-    spritesRenderer.appendSubset(1, &transform3, &texcoord3);
+    // sprite: unit cyan
+    positions[2] = Position{0.0f, 0.0f, 0.0f};
+    scales[2] = Scale{32.0f, 32.0f};
+    texcoords[2] = SPRITE_TEXCOORDS[SPRITE_UNIT_CYAN_270];
+
+    // sprite: unit magenta
+    positions[3] = Position{32.0f, 0.0f, 0.0f};
+    scales[3] = Scale{32.0f, 32.0f};
+    texcoords[3] = SPRITE_TEXCOORDS[SPRITE_UNIT_MAGENTA_270];
+
+    spriteRenderer.updatePositionData(0, count, &positions[0]);
+    spriteRenderer.updateScaleData(0, count, &scales[0]);
+    spriteRenderer.updateTexCoordData(0, count, &texcoords[0]);
 
     // setup loop variables
     bool quit = false;
@@ -62,7 +68,7 @@ int main() {
 
         // handle renders
         sdlManager.clearWindow();
-        spritesRenderer.render(uiManager.getPlayerCamera());
+        spriteRenderer.render(uiManager.getPlayerCamera());
         uiManager.render();
         sdlManager.swapWindowBuffers();
 

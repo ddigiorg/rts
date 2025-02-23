@@ -7,6 +7,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/demos/bin)
 # Demos
 # ==============================================================================
 
+# test_alpha
+set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_alpha)
+get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+target_link_libraries(${DEMO_NAME} PRIVATE game)
+target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
 # # test_ecs
 # set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_ecs)
 # get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
@@ -63,23 +70,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/demos/bin)
 # target_link_libraries(${DEMO_NAME} PRIVATE game)
 # target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-# test_world_manager
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_world_manager)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_world_manager
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_world_manager)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 # ==============================================================================
 # Copy files to bin
 # ==============================================================================
 
-# copy the assets folder to the build directory
+# copy the data folder to the build directory
 add_custom_command(
     TARGET ${DEMO_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${PROJECT_DIR}/assets"
-        "$<TARGET_FILE_DIR:${DEMO_NAME}>/assets"
+        "${PROJECT_DIR}/data"
+        "$<TARGET_FILE_DIR:${DEMO_NAME}>/data"
 )
 
 # if on windows then copy required dlls

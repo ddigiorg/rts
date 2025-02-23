@@ -101,6 +101,9 @@ SDLManager::SDLManager() {
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // TODO: make this an option
+    // SDL_GL_SetSwapInterval(0); // Disable vsync
 }
 
 SDLManager::~SDLManager() {

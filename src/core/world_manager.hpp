@@ -2,12 +2,14 @@
 
 #include "core/types.hpp"
 #include "graphics/camera.hpp"
-#include "graphics/render/chunks_renderer.hpp"
+#include "graphics/render/sprite_renderer.hpp"
+#include "graphics/render/quad_renderer.hpp"
 
 // https://github.com/Auburn/FastNoiseLite
 #include "Cpp/FastNoiseLite.h"
 
 #include <vector>
+#include <iostream>
 
 using namespace Graphics;
 
@@ -19,77 +21,114 @@ public:
     void render(const Camera& camera);
 
 private:
-    void _noise(TileData& tiles, float chunkX, float chunkY);
+    void _initChunkData(const size_t cIdx, const Location& cLoc);
 
-    FastNoiseLite fnl;
-    ChunksRenderer chunkRenderer;
+    const Scale cScale = Scale{CHUNK_SIZE_X, CHUNK_SIZE_Y};
+    const Scale tScale = Scale{TILE_SIZE_X, TILE_SIZE_Y};
+    const Color cGridColor = Color{0.0f, 0.0f, 1.0f, 1.0f};
+    const Color tGridColor = Color{0.0f, 0.0f, 0.0f, 0.4f};
+    const float cLineWidth = 3.0f;
+    const float tLineWidth = 1.0f;
+
+    // renderers
+    SpriteRenderer tSpriteRenderer;
+    QuadRenderer tGridRenderer;
+    QuadRenderer cGridRenderer;
 
     // chunk data
-    float chunkOffsetX;
-    float chunkOffsetY;
-    std::vector<Position> chunkPositions;
-    std::vector<TileData> chunkTileDatas;
-    // std::vector<SectorData> sectorData;
+    size_t cCount;
+    std::vector<Position> cPositions;
+    std::vector<size_t> cTileIndices;
+
+    // tile data
+    size_t tCount;
+    std::vector<Position> tPositions;
+    std::vector<TexCoord> tTexCoords;
 };
 
-WorldManager::WorldManager() : chunkRenderer(CHUNK_RENDER_COUNT) {
+WorldManager::WorldManager() {
 
-    // setup fast noise lite
-    fnl.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    // fnl.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-    fnl.SetFrequency(0.015f);
+    // setup chunk data
+    size_t cCountX = CHUNK_RENDER_RADIUS * 2 - 1;
+    size_t cCountY = CHUNK_RENDER_RADIUS * 2 - 1;
+    size_t cCount = cCountX * cCountY;
 
-    // calculate chunk offsets
-    chunkOffsetX = std::floor(CHUNK_RENDER_COUNT_X * 0.5f);
-    chunkOffsetY = std::floor(CHUNK_RENDER_COUNT_Y * 0.5f);
+    cPositions.resize(cCount);
+    cTileIndices.resize(cCount);
 
-    // reserve space in vectors to avoid reallocations
-    chunkPositions.reserve(CHUNK_RENDER_COUNT);
-    chunkTileDatas.reserve(CHUNK_RENDER_COUNT);
+    cGridRenderer.setCapacity(cCount);
+    cGridRenderer.setCount(cCount);
 
-    // initialize chunk data
-    for (unsigned int i = 0; i < CHUNK_RENDER_COUNT; i++) {
-        int x = i % CHUNK_RENDER_COUNT_X - chunkOffsetX;
-        int y = i / CHUNK_RENDER_COUNT_X - chunkOffsetY;
+    // setup tile data
+    size_t tCountX = cCountX * CHUNK_TILE_COUNT_X;
+    size_t tCountY = cCountY * CHUNK_TILE_COUNT_Y;
+    size_t tCount = tCountX * tCountY;
 
-        chunkPositions.emplace_back(chunkIndexToWorld(Index{x, y}));
-        chunkTileDatas.emplace_back();
-        chunkTileDatas.back().fill(1);
-        // _noise(chunkTileDatas.back(), x, y);
+    tPositions.resize(tCount);
+    tTexCoords.resize(tCount);
 
-        chunkRenderer.updateChunkPosition(i, &chunkPositions[i]);
-        chunkRenderer.updateChunkTiles(i, &chunkTileDatas[i]);
+    tSpriteRenderer.setCapacity(tCount);
+    tSpriteRenderer.setCount(tCount);    
+    tGridRenderer.setCapacity(tCount);
+    tGridRenderer.setCount(tCount);
+
+    // initialize data
+    const int cRenderHalf = CHUNK_RENDER_RADIUS - 1;
+    size_t cIdx = 0;
+
+    for (int cy = -cRenderHalf; cy <= cRenderHalf; cy++) {
+        for (int cx = -cRenderHalf; cx <= cRenderHalf; cx++) {
+            _initChunkData(cIdx++, Location{cx, cy});
+        }
+    }
+
+    // update tile renderer buffers
+    tSpriteRenderer.updatePositionData(0, tCount, &tPositions[0]);
+    tSpriteRenderer.updateTexCoordData(0, tCount, &tTexCoords[0]);
+    tGridRenderer.updatePositionData(0, tCount, &tPositions[0]);
+
+    for (size_t t = 0; t < tCount; t++) {
+        tSpriteRenderer.updateScaleData(t, 1, &tScale);
+        tGridRenderer.updateScaleData(t, 1, &tScale);
+        tGridRenderer.updateColorData(t, 1, &tGridColor);
+    }
+
+    // update chunk renderer buffers
+    cGridRenderer.updatePositionData(0, cCount, &cPositions[0]);
+
+    for (size_t c = 0; c < cCount; c++) {
+        cGridRenderer.updateScaleData(c, 1, &cScale);
+        cGridRenderer.updateColorData(c, 1, &cGridColor);
     }
 }
 
-void WorldManager::_noise(TileData& tiles, float chunkX, float chunkY) {
 
-    std::cout << chunkX << " " << chunkY << std::endl;
+void WorldManager::_initChunkData(const size_t cIdx, const Location& cLoc) {
+    const size_t tIdxBeg = cIdx * CHUNK_TILE_COUNT;
+    const int txBeg = CHUNK_TILE_COUNT_X * cLoc.x;
+    const int tyBeg = CHUNK_TILE_COUNT_Y * cLoc.y;
+    const int txEnd = txBeg + CHUNK_TILE_COUNT_X;
+    const int tyEnd = tyBeg + CHUNK_TILE_COUNT_Y;
 
-    for (unsigned int i = 0; i < CHUNK_TILE_COUNT; i++) {
-        int x = i % CHUNK_TILE_COUNT_X;
-        int y = i / CHUNK_TILE_COUNT_X;
+    size_t tIdx = tIdxBeg;
 
-        float tileX = chunkX * CHUNK_TILE_COUNT_X + x;
-        float tileY = chunkY * CHUNK_TILE_COUNT_Y + y;
-
-        if (i < 5)
-            std::cout << tileX << " " << tileY << std::endl;
-
-        float noise = fnl.GetNoise(tileX, tileY); // returns float between {-1, 1}
-        unsigned int tile = (unsigned int)((noise + 1.0f)) + 1;
-
-        tiles[i] = tile;
-        // std::cout << noise << std::endl;
-        // std::cout << tile << std::endl;
-        // std::cout << std::endl;
-
+    for (int ty = tyBeg; ty < tyEnd; ty++) {
+        for (int tx = txBeg; tx < txEnd; tx++) {
+            Location tLoc = {tx, ty};
+            tPositions[tIdx] = tileGridToWorld(tLoc);
+            tTexCoords[tIdx] = SPRITE_TEXCOORDS[SPRITE_TERRAIN_GRASS];
+            tIdx++;
+        }
     }
-    std::cout << std::endl;
+
+    cPositions[cIdx] = chunkGridToWorld(cLoc);
+    cTileIndices[cIdx] = tIdxBeg;
 }
 
 void WorldManager::render(const Camera& camera) {
-    chunkRenderer.render(camera);
+    tSpriteRenderer.render(camera);
+    tGridRenderer.renderOutline(camera, tLineWidth);
+    cGridRenderer.renderOutline(camera, cLineWidth);
 }
 
 } // namespace Core

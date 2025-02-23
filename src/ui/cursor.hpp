@@ -15,8 +15,8 @@ using namespace Input;
 namespace UI {
 
 // shader filepaths
-constexpr const char* CURSOR_BOX_SELECT_VERT = "assets/shaders/cursor_box_select_vert.glsl";
-constexpr const char* CURSOR_BOX_SELECT_FRAG = "assets/shaders/cursor_box_select_frag.glsl";
+constexpr const char* CURSOR_SELECT_VERT = "data/shaders/cursor-select.vert";
+constexpr const char* CURSOR_SELECT_FRAG = "data/shaders/cursor-select.frag";
 
 // cursor constants
 constexpr glm::vec4 CURSOR_BOX_SELECT_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -79,7 +79,7 @@ void Cursor::_setupBoxSelectPipeline() {
     glBindVertexArray(0);
 
     // load shader
-    boxSelectShader.load(CURSOR_BOX_SELECT_VERT, CURSOR_BOX_SELECT_FRAG);
+    boxSelectShader.load(CURSOR_SELECT_VERT, CURSOR_SELECT_FRAG);
     boxSelectShader.use();
     float r = CURSOR_BOX_SELECT_COLOR.r;
     float g = CURSOR_BOX_SELECT_COLOR.g;

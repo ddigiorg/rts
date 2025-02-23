@@ -31,23 +31,23 @@ constexpr uint16_t CHUNK_SECTOR_COUNT = CHUNK_SECTOR_COUNT_X * CHUNK_SECTOR_COUN
 constexpr uint16_t CHUNK_SIZE_X = TILE_SIZE_X * CHUNK_TILE_COUNT_X; // pixels
 constexpr uint16_t CHUNK_SIZE_Y = TILE_SIZE_Y * CHUNK_TILE_COUNT_Y; // pixels
 
-constexpr uint16_t CHUNK_RENDER_COUNT_X = 3;
-constexpr uint16_t CHUNK_RENDER_COUNT_Y = 3;
-constexpr uint16_t CHUNK_RENDER_COUNT = CHUNK_RENDER_COUNT_X * CHUNK_RENDER_COUNT_Y;
+constexpr uint16_t CHUNK_RENDER_RADIUS = 2;
 
 // =============================================================================
 // Components
 // =============================================================================
 
-struct Index {
+// TODO: consider changing to Position2i
+struct Location {
     int x, y;
 };
 
+// TODO: consider changing to Position3f
 struct Position {
-    float x, y;
+    float x, y, z;
 };
 
-struct Size {
+struct Scale {
     float x, y;
 };
 
@@ -57,6 +57,10 @@ struct Velocity {
 
 struct Transform {
     float x, y, w, h;
+};
+
+struct Color {
+    float r, g, b, a;
 };
 
 struct TexCoord {
@@ -79,40 +83,40 @@ using TileData = std::array<uint8_t, CHUNK_TILE_COUNT>;
 // =============================================================================
 // TODO: bitshift versions for faster conversions
 
-inline Position chunkIndexToWorld(const Index& index){
+inline Position chunkGridToWorld(const Location& index){
     float worldX = index.x * CHUNK_SIZE_X;
     float worldY = index.y * CHUNK_SIZE_Y;
-    return Position{worldX, worldY};
+    return Position{worldX, worldY, 0.0f};
 }
 
-inline Index chunkWorldToIndex(const Position& world){
+inline Location chunkWorldToGrid(const Position& world){
     int indexX = std::floor(world.x / CHUNK_SIZE_X);
     int indexY = std::floor(world.y / CHUNK_SIZE_Y);
-    return Index{indexX, indexY};
+    return Location{indexX, indexY};
 }
 
-inline Position sectorIndexToWorld(const Index& index){
+inline Position sectorGridToWorld(const Location& index){
     float worldX = index.x * SECTOR_SIZE_X;
     float worldY = index.y * SECTOR_SIZE_Y;
-    return Position{worldX, worldY};
+    return Position{worldX, worldY, 0.0f};
 }
 
-inline Index sectorWorldToIndex(const Position& world){
+inline Location sectorWorldToGrid(const Position& world){
     int indexX = std::floor(world.x / SECTOR_SIZE_X);
     int indexY = std::floor(world.y / SECTOR_SIZE_Y);
-    return Index{indexX, indexY};
+    return Location{indexX, indexY};
 }
 
-inline Position tileIndexToWorld(const Index& index){
+inline Position tileGridToWorld(const Location& index){
     float worldX = index.x * TILE_SIZE_X;
     float worldY = index.y * TILE_SIZE_Y;
-    return Position{worldX, worldY};
+    return Position{worldX, worldY, 0.0f};
 }
 
-inline Index tileWorldToIndex(const Position& world){
+inline Location tileWorldToGrid(const Position& world){
     int indexX = std::floor(world.x / TILE_SIZE_X);
     int indexY = std::floor(world.y / TILE_SIZE_Y);
-    return Index{indexX, indexY};
+    return Location{indexX, indexY};
 }
 
 // =============================================================================
@@ -120,25 +124,28 @@ inline Index tileWorldToIndex(const Position& world){
 // =============================================================================
 // TODO: bitshift versions for faster conversions
 
-// inline Position tileIndexToWorld(const Index& index){
+// inline Position tileGridToWorld(const Location& index){
 //     float worldX = (index.x - index.y) * (TILE_SIZE_X * 0.5f);
 //     float worldY = (index.y + index.x) * (TILE_SIZE_Y * 0.5f);
 //     return Position{worldX, worldY};
 // }
 
-// inline Index tileWorldToIndex(const Position& world){
+// inline Location tileWorldToGrid(const Position& world){
 //     int indexX = std::floor((world.x / TILE_SIZE_X) + (world.y / TILE_SIZE_Y));
 //     int indexY = std::floor((world.y / TILE_SIZE_Y) - (world.x / TILE_SIZE_X));
-//     return Index{indexX, indexY};
+//     return Location{indexX, indexY};
 // }
 
 // =============================================================================
 // Collision Functions
 // =============================================================================
 
-inline bool detectAABBCollision(const Transform& a, const Transform& b) {
-    return !(a.x + a.w <= b.x || a.x >= b.x + b.w || 
-             a.y + a.h <= b.y || a.y >= b.y + b.h);
+inline bool detectAABBCollision(
+    const Position& posA, const Scale& scaleA,
+    const Position& posB, const Scale& scaleB
+) {
+    return !(posA.x + scaleA.x <= posB.x || posA.x >= posB.x + scaleB.x || 
+             posA.y + scaleA.y <= posB.y || posA.y >= posB.y + scaleB.y);
 }
 
 inline bool detectCircleCollision(const CircleCollider& a, const CircleCollider& b) {
@@ -189,70 +196,90 @@ inline void resolveCircleCollision(CircleCollider& a, CircleCollider& b) {
 // Sprite Texture Coordinates
 // =============================================================================
 
-constexpr const size_t SPRITE_TYPE_COUNT = 2;
-constexpr const size_t SPRITE_COUNT = 16;
-constexpr const size_t SPRITE_SHEET_PIXELS_X = 320;
-constexpr const size_t SPRITE_SHEET_PIXELS_Y = 128;
+constexpr const size_t SPRITE_TYPE_COUNT = 4;
+constexpr const size_t SPRITE_COUNT = 20;
+constexpr const size_t SPRITE_SHEET_PIXELS_X = 384;
+constexpr const size_t SPRITE_SHEET_PIXELS_Y = 192;
 
 constexpr TexCoord computeTexCoord(int x, int y, int w, int h) {
-    return TexCoord{
-        float(x) / float(SPRITE_SHEET_PIXELS_X),
-        float(y) / float(SPRITE_SHEET_PIXELS_Y),
-        float(w) / float(SPRITE_SHEET_PIXELS_X),
-        float(h) / float(SPRITE_SHEET_PIXELS_Y)
-    };
+    constexpr float texelX = 1.0f / float(SPRITE_SHEET_PIXELS_X);
+    constexpr float texelY = 1.0f / float(SPRITE_SHEET_PIXELS_Y);
+
+    // using half texel offsets to avoid texture bleeding
+    float u = (float(x) + 0.5f) * texelX;
+    float v = (float(y) + 0.5f) * texelY;
+    float uw = (float(w) - 1.0f) * texelX;
+    float vh = (float(h) - 1.0f) * texelY;
+
+    return TexCoord{u, v, uw, vh};
 }
 
 enum SpriteType {
-    CYAN,
-    MAGENTA,
+    TERRAIN,
+    UNIT_CYAN,
+    UNIT_MAGENTA,
+    UNIT_TREE,
 };
 
 constexpr const std::array<size_t, SPRITE_TYPE_COUNT> SPRITE_OFFSETS = {
-    0, // CYAN
-    8, // MAGENTA
+    0,  // TERRAIN
+    3,  // UNIT_CYAN
+    11, // UNIT_MAGENTA
+    12, // UNIT_TREE
 };
 
 enum Sprite {
-    // cyan
-    SPRITE_CYAN_000,
-    SPRITE_CYAN_045,
-    SPRITE_CYAN_090,
-    SPRITE_CYAN_135,
-    SPRITE_CYAN_180,
-    SPRITE_CYAN_225,
-    SPRITE_CYAN_270,
-    SPRITE_CYAN_315,
-    // magenta
-    SPRITE_MAGENTA_000,
-    SPRITE_MAGENTA_045,
-    SPRITE_MAGENTA_090,
-    SPRITE_MAGENTA_135,
-    SPRITE_MAGENTA_180,
-    SPRITE_MAGENTA_225,
-    SPRITE_MAGENTA_270,
-    SPRITE_MAGENTA_315,
+    // terrain
+    SPRITE_TERRAIN_NULL,
+    SPRITE_TERRAIN_GRASS,
+    SPRITE_TERRAIN_WATER,
+    // cyan unit
+    SPRITE_UNIT_CYAN_000,
+    SPRITE_UNIT_CYAN_045,
+    SPRITE_UNIT_CYAN_090,
+    SPRITE_UNIT_CYAN_135,
+    SPRITE_UNIT_CYAN_180,
+    SPRITE_UNIT_CYAN_225,
+    SPRITE_UNIT_CYAN_270,
+    SPRITE_UNIT_CYAN_315,
+    // magenta unit
+    SPRITE_UNIT_MAGENTA_000,
+    SPRITE_UNIT_MAGENTA_045,
+    SPRITE_UNIT_MAGENTA_090,
+    SPRITE_UNIT_MAGENTA_135,
+    SPRITE_UNIT_MAGENTA_180,
+    SPRITE_UNIT_MAGENTA_225,
+    SPRITE_UNIT_MAGENTA_270,
+    SPRITE_UNIT_MAGENTA_315,
+    // tree
+    SPRITE_UNIT_TREE,
 };
 
 constexpr const std::array<TexCoord, SPRITE_COUNT> SPRITE_TEXCOORDS = {{
+    // terrain
+    computeTexCoord(  0, 128,  64, 64), // SPRITE_TERRAIN_NULL
+    computeTexCoord( 64, 128,  64, 64), // SPRITE_TERRAIN_GRASS
+    computeTexCoord(128, 128,  64, 64), // SPRITE_TERRAIN_WATER
     // cyan
-    computeTexCoord(128, 64,  64, 64), // SPRITE_CYAN_000
-    computeTexCoord(192, 64,  64, 64), // SPRITE_CYAN_045
-    computeTexCoord(256, 64,  64, 64), // SPRITE_CYAN_090
-    computeTexCoord(256, 64, -64, 64), // SPRITE_CYAN_135
-    computeTexCoord(192, 64, -64, 64), // SPRITE_CYAN_180
-    computeTexCoord(128, 64, -64, 64), // SPRITE_CYAN_225
-    computeTexCoord(  0, 64,  64, 64), // SPRITE_CYAN_270
-    computeTexCoord( 64, 64,  64, 64), // SPRITE_CYAN_315
+    computeTexCoord(128, 64,  64, 64), // SPRITE_UNIT_CYAN_000
+    computeTexCoord(192, 64,  64, 64), // SPRITE_UNIT_CYAN_045
+    computeTexCoord(256, 64,  64, 64), // SPRITE_UNIT_CYAN_090
+    computeTexCoord(256, 64, -64, 64), // SPRITE_UNIT_CYAN_135
+    computeTexCoord(192, 64, -64, 64), // SPRITE_UNIT_CYAN_180
+    computeTexCoord(128, 64, -64, 64), // SPRITE_UNIT_CYAN_225
+    computeTexCoord(  0, 64,  64, 64), // SPRITE_UNIT_CYAN_270
+    computeTexCoord( 64, 64,  64, 64), // SPRITE_UNIT_CYAN_315
     // magenta
-    computeTexCoord(128,  0,  64, 64), // SPRITE_MAGENTA_000
-    computeTexCoord(192,  0,  64, 64), // SPRITE_MAGENTA_045
-    computeTexCoord(256,  0,  64, 64), // SPRITE_MAGENTA_090
-    computeTexCoord(256,  0, -64, 64), // SPRITE_MAGENTA_135
-    computeTexCoord(192,  0, -64, 64), // SPRITE_MAGENTA_180
-    computeTexCoord(128,  0, -64, 64), // SPRITE_MAGENTA_225
-    computeTexCoord(  0,  0,  64, 64), // SPRITE_MAGENTA_270
-    computeTexCoord( 64,  0,  64, 64), // SPRITE_MAGENTA_315
+    computeTexCoord(128,  0,  64, 64), // SPRITE_UNIT_MAGENTA_000
+    computeTexCoord(192,  0,  64, 64), // SPRITE_UNIT_MAGENTA_045
+    computeTexCoord(256,  0,  64, 64), // SPRITE_UNIT_MAGENTA_090
+    computeTexCoord(256,  0, -64, 64), // SPRITE_UNIT_MAGENTA_135
+    computeTexCoord(192,  0, -64, 64), // SPRITE_UNIT_MAGENTA_180
+    computeTexCoord(128,  0, -64, 64), // SPRITE_UNIT_MAGENTA_225
+    computeTexCoord(  0,  0,  64, 64), // SPRITE_UNIT_MAGENTA_270
+    computeTexCoord( 64,  0,  64, 64), // SPRITE_UNIT_MAGENTA_315
+    // tree
+    computeTexCoord(320,  0,  64, 128), // SPRITE_UNIT_TREE
 }};
 
 } // namespace Core

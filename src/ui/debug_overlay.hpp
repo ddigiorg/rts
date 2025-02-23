@@ -66,10 +66,10 @@ void DebugOverlay::update(const Camera& camera, FrameState& frame) {
         // TODO: clean this up
         glm::vec2 mouseWorldPos = camera.screenToWorld(mouse.x, mouse.y, window.width, window.height);
         Position pos = Position{mouseWorldPos.x, mouseWorldPos.y};
-        Index mouseIdx = Index{(int)pos.x, (int)pos.y};
-        Index chunkIdx = chunkWorldToIndex(pos);
-        Index sectorIdx = sectorWorldToIndex(pos);
-        Index tileIdx = tileWorldToIndex(pos);
+        Location mouseIdx = Location{(int)pos.x, (int)pos.y};
+        Location chunkIdx = chunkWorldToGrid(pos);
+        Location sectorIdx = sectorWorldToGrid(pos);
+        Location tileIdx = tileWorldToGrid(pos);
 
         lines[0].text = "Camera.XY(World): (" + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ")";
         lines[1].text = "Mouse.XY(Screen): (" + std::to_string(mouseIdx.x) + ", " + std::to_string(mouseIdx.y) + ")";
