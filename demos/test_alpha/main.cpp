@@ -25,23 +25,22 @@ int main() {
     WorldManager worldManager;
     UnitManager unitManager;
 
-    unitManager.create(UnitConfig{UNIT_CYAN, tileGridToWorld(Location{0, -10}), Scale{64.0f, 64.0f}});
-
     for (int y = 0; y < 16; y++) {
         for (int x = 0; x < 16; x++) {
             Location loc = Location{x - 16, y};
-            UnitConfig config {UNIT_CYAN, tileGridToWorld(loc)};
-            unitManager.create(config);
+            Position pos = tileGridToWorld(loc);
+            unitManager.create(UnitType::BALL_CYAN, pos);
         }
     }
 
     for (int y = 0; y < 16; y++) {
         for (int x = 0; x < 16; x++) {
             Location loc = Location{x + 16, y};
-            UnitConfig config {UNIT_MAGENTA, tileGridToWorld(loc)};
-            unitManager.create(config);
+            Position pos = tileGridToWorld(loc);
+            unitManager.create(UnitType::BALL_MAGENTA, pos);
         }
     }
+
 
     // setup loop variables
     bool quit = false;

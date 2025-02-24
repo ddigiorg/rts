@@ -22,16 +22,10 @@ constexpr const uint32_t UNIT_DEFAULT_CAPACITY = 32;
 constexpr const uint32_t UNIT_DEFAULT_SELECT_CAPACITY = 64;
 constexpr const uint32_t UNIT_MAX_CAPACITY = 1024 * 20; // 20k units
 
-struct UnitConfig {
-    SpriteType type = UNIT_CYAN;
-    Position position = {0.0f, 0.0f};
-    Scale scale = {32.0f, 32.0f};
-};
-
 class UnitManager {
 public:
     UnitManager();
-    void create(const UnitConfig& config);
+    void create(const UnitType type, const Position& pos);
     void remove(const ObjectID& id);
     void update(FrameState& frame, const Camera& camera); // TODO: figure out how to handle player camera better
     void render(const Camera& camera);
@@ -47,10 +41,6 @@ private:
     void _updateTexCoords();
     void _updateRendering();
 
-    // constants
-    const Color selectColor = Color{1.0f, 1.0f, 1.0f, 1.0f};
-    const float selectLineWidth = 2.0f;
-
     // renderers
     QuadRenderer selectRenderer;
     SpriteRenderer spriteRenderer;
@@ -62,16 +52,18 @@ private:
     uint32_t count;
     uint32_t capacity;
     std::vector<ObjectID> ids;
-    std::vector<size_t> spriteOffsets;
-    std::vector<bool> isMovings;
+    std::vector<UnitType> types;
     std::vector<Position> positions;
-    std::vector<Scale> scales;
-    std::vector<TexCoord> texcoords;
-    std::vector<Position> targets;
     std::vector<Velocity> velocities;
-    std::vector<CircleCollider> colliders;
+    std::vector<Position> targets;
+    std::vector<bool> isMovings;
+    std::vector<Scale> hitboxScales;
+    std::vector<Scale> spriteScales;
+    std::vector<TexCoord> texcoords;
 
     // selected unit data
+    const Color selectColor = Color{1.0f, 1.0f, 1.0f, 1.0f};
+    const float selectLineWidth = 2.0f;
     uint32_t selectCount;
     uint32_t selectCapacity;
     std::array<ObjectID, UNIT_DEFAULT_SELECT_CAPACITY> selectIDs;
@@ -89,44 +81,44 @@ UnitManager::UnitManager() {
     count = 0;
     capacity = UNIT_DEFAULT_CAPACITY;
     ids.resize(capacity);
-    spriteOffsets.resize(capacity);
-    isMovings.resize(capacity);
+    types.resize(capacity);
     positions.resize(capacity);
-    scales.resize(capacity);
-    texcoords.resize(capacity);
-    targets.resize(capacity);
     velocities.resize(capacity);
-    colliders.resize(capacity);
+    targets.resize(capacity);
+    isMovings.resize(capacity);
+    hitboxScales.resize(capacity);
+    spriteScales.resize(capacity);
+    texcoords.resize(capacity);
+
     spriteRenderer.setCapacity(capacity);
 
     // setup selected unit data
     selectCount = 0;
     selectCapacity = UNIT_DEFAULT_SELECT_CAPACITY;
+
     selectRenderer.setCapacity(selectCapacity);
 
     for (uint16_t i = 0; i < selectCapacity; i++)
         selectRenderer.updateColorData(i, 1, &selectColor);
 }
 
-void UnitManager::create(const UnitConfig& config) {
+void UnitManager::create(const UnitType type, const Position& pos) {
     if (count >= capacity)
         _growCapacity();
 
     uint32_t idx = count++;
     ObjectID id = units.create(idx);
-
-    // initialize unit data
-    const size_t offset = SPRITE_OFFSETS[config.type];
+    const UnitConfig& config = UNIT_CONFIGS[type];
 
     ids[idx] = id;
-    spriteOffsets[idx] = offset;
-    isMovings[idx] = false;
-    positions[idx] = Position{config.position.x, config.position.y, 0.5f}; // TODO: update z buffer
-    scales[idx] = config.scale;
-    texcoords[idx] = SPRITE_TEXCOORDS[offset];
-    targets[idx] = Position{0.0f, 0.0f, 0.0f};
+    types[idx] = type;
+    positions[idx] = Position{pos.x, pos.y, 0.5f}; // TODO: update z buffer
     velocities[idx] = Velocity{0.0f, 0.0f};
-    colliders[idx] = CircleCollider{config.position.x, config.position.y, config.scale.x * 0.5f};
+    targets[idx] = Position{0.0f, 0.0f, 0.0f};
+    isMovings[idx] = false;
+    hitboxScales[idx] = config.hitboxScale;
+    spriteScales[idx] = config.spriteScale;
+    texcoords[idx] = UNIT_CONFIGS[type].idleSprites[0][0];
 }
 
 void UnitManager::remove(const ObjectID& removeID) {
@@ -139,14 +131,14 @@ void UnitManager::remove(const ObjectID& removeID) {
         units.set(lastID, removeIdx);
         
         ids[removeIdx] = ids[lastIdx];
-        spriteOffsets[removeIdx] = spriteOffsets[lastIdx];
-        isMovings[removeIdx] = isMovings[lastIdx];
+        types[removeIdx] = types[lastIdx];
         positions[removeIdx] = positions[lastIdx];
-        scales[removeIdx] = scales[lastIdx];
-        texcoords[removeIdx] = texcoords[lastIdx];
-        targets[removeIdx] = targets[lastIdx];
         velocities[removeIdx] = velocities[lastIdx];
-        colliders[removeIdx] = colliders[lastIdx];
+        targets[removeIdx] = targets[lastIdx];
+        isMovings[removeIdx] = isMovings[lastIdx];
+        hitboxScales[removeIdx] = hitboxScales[lastIdx];
+        spriteScales[removeIdx] = spriteScales[lastIdx];
+        texcoords[removeIdx] = texcoords[lastIdx];
     }
 
     count--;
@@ -173,14 +165,15 @@ void UnitManager::_growCapacity() {
     uint32_t newCapacity = std::min(capacity * 2, UNIT_MAX_CAPACITY);
 
     ids.resize(newCapacity);
-    spriteOffsets.resize(newCapacity);
-    isMovings.resize(newCapacity);
+    types.resize(newCapacity);
     positions.resize(newCapacity);
-    scales.resize(newCapacity);
-    texcoords.resize(newCapacity);
-    targets.resize(newCapacity);
     velocities.resize(newCapacity);
-    colliders.resize(newCapacity);
+    targets.resize(newCapacity);
+    isMovings.resize(newCapacity);
+    hitboxScales.resize(newCapacity);
+    spriteScales.resize(newCapacity);
+    texcoords.resize(newCapacity);
+
     spriteRenderer.setCapacity(newCapacity);
 
     capacity = newCapacity;
@@ -221,7 +214,7 @@ void UnitManager::_updateSelected(FrameState& frame, const Camera& camera) {
 
     // compute unit collisions with selection box
     for (uint32_t i = 0; i < count; i++) {
-        if (detectAABBCollision(boxPos, boxScale, positions[i], scales[i])) {
+        if (detectAABBCollision(boxPos, boxScale, positions[i], spriteScales[i])) {
             if (selectCount < selectCapacity)
                 selectIDs[selectCount++] = ids[i];
             else
@@ -280,12 +273,6 @@ void UnitManager::_updateVelocities(FrameState& frame) {
         float invLength = 1.0f / length;
         velocity.x = dx * invLength * speed;
         velocity.y = dy * invLength * speed;
-
-        // TODO: implement smaller collision radii when moving
-        // if (isMovings[i])
-        //     collider.radius = 14.0f;
-        // else
-        //     collider.radius = 16.0f;
     }
 }
 
@@ -296,14 +283,9 @@ void UnitManager::_updatePositions(FrameState& frame) {
     for (uint32_t i = 0; i < count; i++) {
         const auto& velocity = velocities[i];
         auto& position = positions[i];
-        auto& collider = colliders[i];
 
         position.x += velocity.x * dt;
         position.y += velocity.y * dt;
-
-        // TODO: figure out better way without repeating positions in collider
-        collider.x = position.x;
-        collider.y = position.y;
     }
 }
 
@@ -313,41 +295,42 @@ void UnitManager::_updateCollisions() {
     // resolve collisions
     for (uint32_t i = 0; i < count; i++) {
         for (uint32_t j = i + 1; j < count; j++) {
-            resolveCircleCollision(colliders[i], colliders[j]);
 
-            // TODO: figure out better way without repeating positions
-            positions[i].x = colliders[i].x;
-            positions[i].y = colliders[i].y;
-            positions[j].x = colliders[j].x;
-            positions[j].y = colliders[j].y;
+            // smaller collision radii when moving
+            // float pctI = (isMovings[i]) ? 1.0f : 0.8f;
+            // float pctJ = (isMovings[j]) ? 1.0f : 0.8f;
+
+            float radiusI = hitboxScales[i].x * 0.5f;
+            float radiusJ = hitboxScales[i].x * 0.5f;
+            resolveCircleCollision(positions[i], radiusI, positions[j], radiusJ);
         }
     }
 }
 
 void UnitManager::_updateTexCoords() {
-    constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979323846f;
-    constexpr float ANGLE_OFFSET = 22.5f;
-    constexpr float INV_ANGLE_STEP = 8.0f / 360.0f;
+    constexpr const float RAD_TO_DEG = 180.0f / 3.14159265358979323846f;
+    constexpr const float ANGLE_OFFSET = 22.5f;
+    constexpr const float INV_ANGLE_STEP = 8.0f / 360.0f;
 
     for (uint32_t i = 0; i < count; i++) {
-        const auto& offset = spriteOffsets[i];
+        const auto& isMoving = isMovings[i];
+        const auto& type = types[i];
         const auto& velocity = velocities[i];
         auto& texcoord = texcoords[i];
 
         // if stationary keep the current texcoord
-        if (velocity.x == 0.0f && velocity.y == 0.0f) {
-            continue;
-        }
+        if (!isMoving) continue;
 
         // compute angle
         float angle = std::atan2(velocity.y, velocity.x) * RAD_TO_DEG;
         angle = (angle < 0.0f) ? (angle + 360.0f) : angle; // normalize to (0, 360)
 
-        // compute index in the range [0, 7] without branching
-        int index = static_cast<int>((angle + ANGLE_OFFSET) * INV_ANGLE_STEP) & 7;
+        // compute sprite facing in the range [0, 7]
+        size_t facing = static_cast<int>((angle + ANGLE_OFFSET) * INV_ANGLE_STEP) & 7;
+        size_t frame = 0;
 
         // directly access the lookup table
-        texcoord = SPRITE_TEXCOORDS[offset + index];
+        texcoord = UNIT_CONFIGS[type].idleSprites[frame][facing];
     }
 }
 
@@ -358,13 +341,13 @@ void UnitManager::_updateRendering() {
         ObjectID& id = selectIDs[i];
         uint32_t idx = units.get(id);
         selectRenderer.updatePositionData(i, 1, &positions[idx]);
-        selectRenderer.updateScaleData(i, 1, &scales[idx]);
+        selectRenderer.updateScaleData(i, 1, &spriteScales[idx]);
     }
     selectRenderer.setCount(selectCount);
 
     // update sprites
     spriteRenderer.updatePositionData(0, count, &positions[0]);
-    spriteRenderer.updateScaleData(0, count, &scales[0]);
+    spriteRenderer.updateScaleData(0, count, &spriteScales[0]);
     spriteRenderer.updateTexCoordData(0, count, &texcoords[0]);
     spriteRenderer.setCount(count);
 }

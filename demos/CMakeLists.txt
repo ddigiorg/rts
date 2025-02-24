@@ -103,7 +103,7 @@ if(WIN32)
     add_custom_command(
         TARGET ${DEMO_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${GLEW_BINARIES_DIR}/glew32.dll"
+            "${GLEW_BINARIES_DIR}/glew32d.dll" # TODO: remove d for release builds...
             "$<TARGET_FILE_DIR:${DEMO_NAME}>"
     )
 endif()

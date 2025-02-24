@@ -6,8 +6,8 @@ find_package(Freetype REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
-# find_package(SDL2 REQUIRED)
 find_package(SDL3 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 # include directories
 target_include_directories(game INTERFACE
@@ -17,6 +17,7 @@ target_include_directories(game INTERFACE
     ${GLEW_INCLUDE_DIRS}
     ${glm_INCLUDE_DIRS}
     ${STB_INCLUDE_DIR}
+    ${yaml_cpp_INCLUDE_DIR}
 )
 
 # link libraries
@@ -26,4 +27,5 @@ target_link_libraries(game INTERFACE
     glm::glm
     OpenGL::GL
     SDL3::SDL3
+    yaml-cpp::yaml-cpp
 )

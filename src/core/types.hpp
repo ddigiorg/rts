@@ -1,8 +1,12 @@
 #pragma once
 
+#include <yaml-cpp/yaml.h>
+
 #include <array>
+#include <vector>
 #include <cstdint>
 #include <cmath> // for std::floor
+#include <string>
 
 namespace Core {
 
@@ -55,6 +59,7 @@ struct Velocity {
     float x, y;
 };
 
+// TODO: remove this, no longer needed
 struct Transform {
     float x, y, w, h;
 };
@@ -65,11 +70,6 @@ struct Color {
 
 struct TexCoord {
     float u, v, w, h;
-};
-
-struct CircleCollider {
-    float x, y; // center of circle
-    float radius;
 };
 
 // =============================================================================
@@ -141,33 +141,34 @@ inline Location tileWorldToGrid(const Position& world){
 // =============================================================================
 
 inline bool detectAABBCollision(
-    const Position& posA, const Scale& scaleA,
-    const Position& posB, const Scale& scaleB
+        const Position& posA, const Scale& scaleA,
+        const Position& posB, const Scale& scaleB
 ) {
     return !(posA.x + scaleA.x <= posB.x || posA.x >= posB.x + scaleB.x || 
              posA.y + scaleA.y <= posB.y || posA.y >= posB.y + scaleB.y);
 }
 
-inline bool detectCircleCollision(const CircleCollider& a, const CircleCollider& b) {
-    float dx = b.x - a.x;
-    float dy = b.y - a.y;
+// inline void resolveCircleCollision(CircleCollider& a, CircleCollider& b) {
+inline void resolveCircleCollision(
+        Position& posA, const float radiusA,
+        Position& posB, const float radiusB
+) {
+    float dx = posB.x - posA.x;
+    float dy = posB.y - posA.y;
     float distSquared = (dx * dx) + (dy * dy);
-    float radiusSum = a.radius + b.radius;
-    return distSquared < (radiusSum * radiusSum);
-}
-
-inline void resolveCircleCollision(CircleCollider& a, CircleCollider& b) {
-    float dx = b.x - a.x;
-    float dy = b.y - a.y;
-    float distSquared = (dx * dx) + (dy * dy);
-    float radiusSum = a.radius + b.radius;
+    float radiusSum = radiusA + radiusB;
 
     // if no collision then exit
     if (distSquared >= (radiusSum * radiusSum)) return;
 
     // compute distance
     float dist = std::sqrt(distSquared);
-    
+
+    // TODO: As an added speed hack, you can calculate the distance with
+    // Pythagoras' theorem, but don't calculate the expensive square root,
+    // just keep your total centre-to-centre distance and compare to the 
+    // square of the sum of the radii. 
+
     // avoid division by zero for perfectly overlapping circles
     constexpr float epsilon = 1e-6f;
     if (dist < epsilon) {
@@ -186,100 +187,83 @@ inline void resolveCircleCollision(CircleCollider& a, CircleCollider& b) {
 
     // push both units away proportionally
     float correction = overlap * 0.5f;
-    a.x -= nx * correction;
-    a.y -= ny * correction;
-    b.x += nx * correction;
-    b.y += ny * correction;
+    posA.x -= nx * correction;
+    posA.y -= ny * correction;
+    posB.x += nx * correction;
+    posB.y += ny * correction;
 }
 
 // =============================================================================
-// Sprite Texture Coordinates
+// Game Object Configs
 // =============================================================================
-
-constexpr const size_t SPRITE_TYPE_COUNT = 4;
-constexpr const size_t SPRITE_COUNT = 20;
 constexpr const size_t SPRITE_SHEET_PIXELS_X = 384;
 constexpr const size_t SPRITE_SHEET_PIXELS_Y = 192;
+constexpr const float halfTexelX = 1.0f / float(SPRITE_SHEET_PIXELS_X);
+constexpr const float halfTexelY = 1.0f / float(SPRITE_SHEET_PIXELS_Y);
 
-constexpr TexCoord computeTexCoord(int x, int y, int w, int h) {
-    constexpr float texelX = 1.0f / float(SPRITE_SHEET_PIXELS_X);
-    constexpr float texelY = 1.0f / float(SPRITE_SHEET_PIXELS_Y);
 
-    // using half texel offsets to avoid texture bleeding
-    float u = (float(x) + 0.5f) * texelX;
-    float v = (float(y) + 0.5f) * texelY;
-    float uw = (float(w) - 1.0f) * texelX;
-    float vh = (float(h) - 1.0f) * texelY;
+// StaticSprite: no frames, no facings (tiles, static objects)
+// LoopingSprite: frames, no facings (buildings, sparkling resources)
+// OrientedSprite: frames and facings (units)
+using SpriteTableOriented = std::vector<std::array<TexCoord, 8>>; // Note: indexed by [FRAME][FACING]
+using SpriteTable = std::vector<TexCoord>;
 
-    return TexCoord{u, v, uw, vh};
+struct UnitConfig {
+    std::string name;
+    Scale hitboxScale;
+    Scale spriteScale;
+    SpriteTableOriented idleSprites;
+};
+
+constexpr TexCoord computeTexCoord(int pu, int pv, int pw, int ph) {
+    // NOTE: using half texel offsets to avoid texture bleeding
+    float tu = (float(pu) + 0.5f) * halfTexelX;
+    float tv = (float(pv) + 0.5f) * halfTexelY;
+    float tw = (float(pw) - 1.0f) * halfTexelX;
+    float th = (float(ph) - 1.0f) * halfTexelY;
+    return TexCoord{tu, tv, tw, th};
 }
 
-enum SpriteType {
-    TERRAIN,
-    UNIT_CYAN,
-    UNIT_MAGENTA,
-    UNIT_TREE,
+UnitConfig loadUnitConfig(const std::string& filepath) {
+    YAML::Node config = YAML::LoadFile(filepath);
+
+    UnitConfig unit;
+    unit.name = config["name"].as<std::string>();
+
+    auto hitbox = config["hitboxScale"];
+    unit.hitboxScale = {hitbox[0].as<float>(), hitbox[1].as<float>()};
+
+    auto sprite = config["spriteScale"];
+    unit.spriteScale = {sprite[0].as<float>(), sprite[1].as<float>()};
+
+    auto idleSprites = config["idleSprites"];
+    size_t frameCount = idleSprites.size();
+    unit.idleSprites.resize(frameCount);
+
+    for (size_t frame = 0; frame < frameCount; frame++) {
+        for (size_t facing = 0; facing < 8; facing++) {
+            const auto& idleSprite = idleSprites[frame][facing];
+            unit.idleSprites[frame][facing] = computeTexCoord(
+                idleSprite[0].as<int>(), // u
+                idleSprite[1].as<int>(), // v
+                idleSprite[2].as<int>(), // w
+                idleSprite[3].as<int>()  // h
+            );
+        }
+    }
+
+    return unit;
+}
+
+enum UnitType {
+    BALL_CYAN,
+    BALL_MAGENTA,
 };
 
-constexpr const std::array<size_t, SPRITE_TYPE_COUNT> SPRITE_OFFSETS = {
-    0,  // TERRAIN
-    3,  // UNIT_CYAN
-    11, // UNIT_MAGENTA
-    12, // UNIT_TREE
+// TODO: should this be in UnitManager?
+static const std::array<UnitConfig, 2> UNIT_CONFIGS = {
+    loadUnitConfig("data/configs/unit-ball-cyan.yaml"), // BALL_CYAN
+    loadUnitConfig("data/configs/unit-ball-magenta.yaml"), // BALL_MAGENTA
 };
-
-enum Sprite {
-    // terrain
-    SPRITE_TERRAIN_NULL,
-    SPRITE_TERRAIN_GRASS,
-    SPRITE_TERRAIN_WATER,
-    // cyan unit
-    SPRITE_UNIT_CYAN_000,
-    SPRITE_UNIT_CYAN_045,
-    SPRITE_UNIT_CYAN_090,
-    SPRITE_UNIT_CYAN_135,
-    SPRITE_UNIT_CYAN_180,
-    SPRITE_UNIT_CYAN_225,
-    SPRITE_UNIT_CYAN_270,
-    SPRITE_UNIT_CYAN_315,
-    // magenta unit
-    SPRITE_UNIT_MAGENTA_000,
-    SPRITE_UNIT_MAGENTA_045,
-    SPRITE_UNIT_MAGENTA_090,
-    SPRITE_UNIT_MAGENTA_135,
-    SPRITE_UNIT_MAGENTA_180,
-    SPRITE_UNIT_MAGENTA_225,
-    SPRITE_UNIT_MAGENTA_270,
-    SPRITE_UNIT_MAGENTA_315,
-    // tree
-    SPRITE_UNIT_TREE,
-};
-
-constexpr const std::array<TexCoord, SPRITE_COUNT> SPRITE_TEXCOORDS = {{
-    // terrain
-    computeTexCoord(  0, 128,  64, 64), // SPRITE_TERRAIN_NULL
-    computeTexCoord( 64, 128,  64, 64), // SPRITE_TERRAIN_GRASS
-    computeTexCoord(128, 128,  64, 64), // SPRITE_TERRAIN_WATER
-    // cyan
-    computeTexCoord(128, 64,  64, 64), // SPRITE_UNIT_CYAN_000
-    computeTexCoord(192, 64,  64, 64), // SPRITE_UNIT_CYAN_045
-    computeTexCoord(256, 64,  64, 64), // SPRITE_UNIT_CYAN_090
-    computeTexCoord(256, 64, -64, 64), // SPRITE_UNIT_CYAN_135
-    computeTexCoord(192, 64, -64, 64), // SPRITE_UNIT_CYAN_180
-    computeTexCoord(128, 64, -64, 64), // SPRITE_UNIT_CYAN_225
-    computeTexCoord(  0, 64,  64, 64), // SPRITE_UNIT_CYAN_270
-    computeTexCoord( 64, 64,  64, 64), // SPRITE_UNIT_CYAN_315
-    // magenta
-    computeTexCoord(128,  0,  64, 64), // SPRITE_UNIT_MAGENTA_000
-    computeTexCoord(192,  0,  64, 64), // SPRITE_UNIT_MAGENTA_045
-    computeTexCoord(256,  0,  64, 64), // SPRITE_UNIT_MAGENTA_090
-    computeTexCoord(256,  0, -64, 64), // SPRITE_UNIT_MAGENTA_135
-    computeTexCoord(192,  0, -64, 64), // SPRITE_UNIT_MAGENTA_180
-    computeTexCoord(128,  0, -64, 64), // SPRITE_UNIT_MAGENTA_225
-    computeTexCoord(  0,  0,  64, 64), // SPRITE_UNIT_MAGENTA_270
-    computeTexCoord( 64,  0,  64, 64), // SPRITE_UNIT_MAGENTA_315
-    // tree
-    computeTexCoord(320,  0,  64, 128), // SPRITE_UNIT_TREE
-}};
 
 } // namespace Core

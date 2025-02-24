@@ -116,7 +116,7 @@ void WorldManager::_initChunkData(const size_t cIdx, const Location& cLoc) {
         for (int tx = txBeg; tx < txEnd; tx++) {
             Location tLoc = {tx, ty};
             tPositions[tIdx] = tileGridToWorld(tLoc);
-            tTexCoords[tIdx] = SPRITE_TEXCOORDS[SPRITE_TERRAIN_GRASS];
+            tTexCoords[tIdx] = computeTexCoord( 64, 128,  64, 64); // TODO: need tile config
             tIdx++;
         }
     }
