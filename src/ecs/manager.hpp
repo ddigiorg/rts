@@ -289,6 +289,7 @@ void Manager::enableEntity(const EntityID id) {
 template<typename T>
 void Manager::addEntityComponent(const EntityID eid) {
     ComponentID cid = getComponentID<T>();
+    ASSERT(eid > 0, "Entity id must be non zero."); // TODO: put this check everywhere
     ASSERT(hasEntity(eid), "Entity " << eid << " does not exist.");
     ASSERT(hasComponent(cid), "Component " << cid << " does not exist.");
     ASSERT(!entityManager.getEntity(eid).arch->hasComponent(cid),

@@ -2,6 +2,8 @@
 
 #include "core/types.hpp"
 #include "core/frame_state.hpp"
+#include "core/components/position2i.hpp"
+#include "core/components/position3f.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/font.hpp"
 #include "input/user_input.hpp"
@@ -65,11 +67,11 @@ void DebugOverlay::update(const Camera& camera, FrameState& frame) {
 
         // TODO: clean this up
         glm::vec2 mouseWorldPos = camera.screenToWorld(mouse.x, mouse.y, window.width, window.height);
-        Position pos = Position{mouseWorldPos.x, mouseWorldPos.y};
-        Location mouseIdx = Location{(int)pos.x, (int)pos.y};
-        Location chunkIdx = chunkWorldToGrid(pos);
-        Location sectorIdx = sectorWorldToGrid(pos);
-        Location tileIdx = tileWorldToGrid(pos);
+        Position3f pos = Position3f{mouseWorldPos.x, mouseWorldPos.y, 0.0f};
+        Position2i mouseIdx = Position2i{(int)pos.x, (int)pos.y};
+        Position2i chunkIdx = chunkWorldToGrid(pos);
+        Position2i sectorIdx = sectorWorldToGrid(pos);
+        Position2i tileIdx = tileWorldToGrid(pos);
 
         lines[0].text = "Camera.XY(World): (" + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ")";
         lines[1].text = "Mouse.XY(Screen): (" + std::to_string(mouseIdx.x) + ", " + std::to_string(mouseIdx.y) + ")";

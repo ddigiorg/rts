@@ -19,3 +19,14 @@
     - https://factorio.com/blog/post/fff-172
 
 5. z-buffer
+
+
+## Path Finding
+
+- global: hierarchical pathfinding across chunks (like factorio) then A* (see FFF #317)
+- local: 
+- pre calculate connectivity map?
+- flow fields?
+- need collision detection with other objects
+- use flocking behavior: calculate pathfinding for one "ghost" unit and have real units try to stay within range of it
+

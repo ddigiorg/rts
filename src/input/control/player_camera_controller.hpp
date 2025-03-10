@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/defaults.hpp"
 #include "core/frame_state.hpp"
 #include "graphics/camera.hpp"
 

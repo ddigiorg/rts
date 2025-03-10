@@ -120,7 +120,7 @@ glew_url="https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2
 glm_url="https://github.com/g-truc/glm/archive/refs/tags/1.0.1.zip"
 sdl_url="https://github.com/libsdl-org/SDL/releases/download/release-3.2.2/SDL3-3.2.2.zip"
 stb_url="https://github.com/nothings/stb.git"
-yaml_url="https://github.com/jbeder/yaml-cpp/archive/refs/tags/0.8.0.tar.gz"
+# yaml_url="https://github.com/jbeder/yaml-cpp/archive/refs/tags/0.8.0.tar.gz"
 
 # download
 download_dependency "fastnoiselite" "$fastnoiselite_url"
@@ -129,7 +129,7 @@ download_dependency "glew" "$glew_url"
 download_dependency "glm" "$glm_url"
 download_dependency "sdl" "$sdl_url"
 download_dependency "stb" "$stb_url"
-download_dependency "yaml" "$yaml_url"
+# download_dependency "yaml" "$yaml_url"
 
 # ==============================================================================
 # Build and Install Dependencies
@@ -144,7 +144,7 @@ build_and_install_dependency "freetype"
 build_and_install_dependency "glew"
 build_and_install_dependency "glm"
 build_and_install_dependency "sdl"
-build_and_install_dependency "yaml"
+# build_and_install_dependency "yaml"
 
 # ==============================================================================
 # Build Project
@@ -158,7 +158,7 @@ freetype_install_path="$(find_dependency_in_path "freetype" "$DEPENDENCIES_INSTA
 glew_install_path="$(find_dependency_in_path "glew" "$DEPENDENCIES_INSTALL_PATH")"
 glm_install_path="$(find_dependency_in_path "glm" "$DEPENDENCIES_INSTALL_PATH")"
 sdl_install_path="$(find_dependency_in_path "sdl" "$DEPENDENCIES_INSTALL_PATH")"
-yaml_install_path="$(find_dependency_in_path "yaml" "$DEPENDENCIES_INSTALL_PATH")"
+# yaml_install_path="$(find_dependency_in_path "yaml" "$DEPENDENCIES_INSTALL_PATH")"
 
 fastnoiselite_source_path="$(find_dependency_in_path "fastnoiselite" "$DEPENDENCIES_SOURCE_PATH")"
 stb_source_path="$(find_dependency_in_path "stb" "$DEPENDENCIES_SOURCE_PATH")"
@@ -167,7 +167,7 @@ stb_source_path="$(find_dependency_in_path "stb" "$DEPENDENCIES_SOURCE_PATH")"
 cmake \
     -B $PROJECT_BUILD_PATH \
     -D PROJECT_DIR="$PROJECT_PATH" \
-    -D CMAKE_PREFIX_PATH="$freetype_install_path;$glew_install_path;$glm_install_path;$sdl_install_path;$yaml_install_path" \
+    -D CMAKE_PREFIX_PATH="$freetype_install_path;$glew_install_path;$glm_install_path;$sdl_install_path" \
     -D FASTNOISELITE_INCLUDE_DIR="$fastnoiselite_source_path" \
     -D STB_INCLUDE_DIR="$stb_source_path" \
     -D SDL_BINARIES_DIR="$sdl_install_path/bin" \

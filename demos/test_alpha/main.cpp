@@ -1,15 +1,14 @@
 #include "core/sdl_manager.hpp"
-#include "ui/ui_manager.hpp"
-#include "input/input_manager.hpp"
-
+#include "core/frame_state.hpp"
 #include "core/world_manager.hpp"
-#include "core/unit_manager.hpp"
-#include "graphics/render/sprite_renderer.hpp"
+#include "input/input_manager.hpp"
+#include "ui/ui_manager.hpp"
 
 #include "utils/timer.hpp"
 
 using namespace Core;
-using namespace UI;
+using namespace Input;
+// using namespace UI;
 
 int main() {
 
@@ -17,30 +16,11 @@ int main() {
 
     // setup managers
     SDLManager sdlManager;
+    // WorldManager worldManager;
     InputManager inputManager;
     UIManager uiManager;
+
     uiManager.toggleDebugOverlay();
-
-    // setup world manager
-    WorldManager worldManager;
-    UnitManager unitManager;
-
-    for (int y = 0; y < 16; y++) {
-        for (int x = 0; x < 16; x++) {
-            Location loc = Location{x - 16, y};
-            Position pos = tileGridToWorld(loc);
-            unitManager.create(UnitType::BALL_CYAN, pos);
-        }
-    }
-
-    for (int y = 0; y < 16; y++) {
-        for (int x = 0; x < 16; x++) {
-            Location loc = Location{x + 16, y};
-            Position pos = tileGridToWorld(loc);
-            unitManager.create(UnitType::BALL_MAGENTA, pos);
-        }
-    }
-
 
     // setup loop variables
     bool quit = false;
@@ -56,13 +36,12 @@ int main() {
         frame.input = inputManager.processEvents();
 
         // handle updates
+        // worldManager.update();
         uiManager.update(frame);
-        unitManager.update(frame, playerCamera);
 
         // handle renders
         sdlManager.clearWindow();
-        worldManager.render(playerCamera);
-        unitManager.render(playerCamera);
+        // worldManager.render(playerCamera);
         uiManager.render();
         sdlManager.swapWindowBuffers();
 

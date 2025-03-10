@@ -7,12 +7,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/demos/bin)
 # Demos
 # ==============================================================================
 
-# test_alpha
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_alpha)
-get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
-add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
-target_link_libraries(${DEMO_NAME} PRIVATE game)
-target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# # test_alpha
+# set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_alpha)
+# get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+# add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+# target_link_libraries(${DEMO_NAME} PRIVATE game)
+# target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 # # test_ecs
 # set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_ecs)
@@ -27,6 +27,13 @@ target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
 # target_link_libraries(${DEMO_NAME} PRIVATE game)
 # target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
+# test_hierarchical_grid
+set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_hierarchical_grid)
+get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
+add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
+target_link_libraries(${DEMO_NAME} PRIVATE game)
+target_include_directories(${DEMO_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 # # test_input
 # set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_input)

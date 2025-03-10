@@ -1,15 +1,25 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "core/components/chunk_data.hpp"
+#include "core/components/color4f.hpp"
+#include "core/components/position2i.hpp"
+#include "core/components/position3f.hpp"
+#include "core/components/scale2f.hpp"
+#include "core/components/tags.hpp"
+#include "core/components/texcoord4f.hpp"
+#include "core/components/tile_data.hpp"
+#include "core/components/velocity2f.hpp"
+#include "core/events/events.hpp"
+#include "core/systems/chunk_init.hpp"
+
+#include "ecs/manager.hpp"
+
 #include "graphics/camera.hpp"
 #include "graphics/render/sprite_renderer.hpp"
 #include "graphics/render/quad_renderer.hpp"
 
-// https://github.com/Auburn/FastNoiseLite
-#include "Cpp/FastNoiseLite.h"
-
 #include <vector>
-#include <iostream>
 
 using namespace Graphics;
 
@@ -18,117 +28,127 @@ namespace Core {
 class WorldManager {
 public:
     WorldManager();
+    void update(); // include delta time
     void render(const Camera& camera);
 
 private:
-    void _initChunkData(const size_t cIdx, const Location& cLoc);
+    void _setupComponents();
+    void _setupSystems();
+    void _setupEvents();
+    void _setupEntities();
 
-    const Scale cScale = Scale{CHUNK_SIZE_X, CHUNK_SIZE_Y};
-    const Scale tScale = Scale{TILE_SIZE_X, TILE_SIZE_Y};
-    const Color cGridColor = Color{0.0f, 0.0f, 1.0f, 1.0f};
-    const Color tGridColor = Color{0.0f, 0.0f, 0.0f, 0.4f};
-    const float cLineWidth = 3.0f;
-    const float tLineWidth = 1.0f;
+    ECS::Manager ecs;
 
+    // TODO: If your rendering layer frequently reads from your vectors, consider 
+    // using persistent mapped buffers or double-buffering for GPU updates. This
+    // will prevent unnecessary CPU-GPU sync stalls.
     // renderers
-    SpriteRenderer tSpriteRenderer;
-    QuadRenderer tGridRenderer;
-    QuadRenderer cGridRenderer;
+    SpriteRenderer spriteRenderer;
+    // QuadRenderer tGridRenderer;
+    // QuadRenderer cGridRenderer;
 
-    // chunk data
-    size_t cCount;
-    std::vector<Position> cPositions;
-    std::vector<size_t> cTileIndices;
-
-    // tile data
-    size_t tCount;
-    std::vector<Position> tPositions;
-    std::vector<TexCoord> tTexCoords;
 };
 
 WorldManager::WorldManager() {
+    _setupComponents();
+    _setupSystems();
+    _setupEvents();
+    _setupEntities();
 
-    // setup chunk data
-    size_t cCountX = CHUNK_RENDER_RADIUS * 2 - 1;
-    size_t cCountY = CHUNK_RENDER_RADIUS * 2 - 1;
-    size_t cCount = cCountX * cCountY;
+    ecs.triggerEvent<OnCreate>();
 
-    cPositions.resize(cCount);
-    cTileIndices.resize(cCount);
 
-    cGridRenderer.setCapacity(cCount);
-    cGridRenderer.setCount(cCount);
+    ecs.addEntityComponent<Active>(1);
 
-    // setup tile data
-    size_t tCountX = cCountX * CHUNK_TILE_COUNT_X;
-    size_t tCountY = cCountY * CHUNK_TILE_COUNT_Y;
-    size_t tCount = tCountX * tCountY;
+    spriteRenderer.setCapacity(CHUNK_TILE_COUNT);
+    spriteRenderer.setCount(CHUNK_TILE_COUNT);
 
-    tPositions.resize(tCount);
-    tTexCoords.resize(tCount);
+    std::vector<Archetype*> archetypes = ecs.query({
+        typeof(Active),
+        typeof(Position3f),
+        typeof(Scale2f),
+        typeof(TexCoord4f),
+    });
 
-    tSpriteRenderer.setCapacity(tCount);
-    tSpriteRenderer.setCount(tCount);    
-    tGridRenderer.setCapacity(tCount);
-    tGridRenderer.setCount(tCount);
+    size_t offset = 0;
+    for (Archetype* archetype : archetypes) {
+        for (size_t c = 0; c < archetype->getNumChunks(); c++) {
+            size_t count = archetype->getChunkNumEntities(c);
 
-    // initialize data
-    const int cRenderHalf = CHUNK_RENDER_RADIUS - 1;
-    size_t cIdx = 0;
+            auto pos = archetype->getComponentDataArray<Position3f>(c);
+            auto sca = archetype->getComponentDataArray<Scale2f>(c);
+            auto tex = archetype->getComponentDataArray<TexCoord4f>(c);
 
-    for (int cy = -cRenderHalf; cy <= cRenderHalf; cy++) {
-        for (int cx = -cRenderHalf; cx <= cRenderHalf; cx++) {
-            _initChunkData(cIdx++, Location{cx, cy});
+            spriteRenderer.updatePositionData(offset, count, pos);
+            spriteRenderer.updateScaleData(offset, count, sca);
+            spriteRenderer.updateTexCoordData(offset, count, tex);
+
+            offset += count;
         }
     }
 
-    // update tile renderer buffers
-    tSpriteRenderer.updatePositionData(0, tCount, &tPositions[0]);
-    tSpriteRenderer.updateTexCoordData(0, tCount, &tTexCoords[0]);
-    tGridRenderer.updatePositionData(0, tCount, &tPositions[0]);
-
-    for (size_t t = 0; t < tCount; t++) {
-        tSpriteRenderer.updateScaleData(t, 1, &tScale);
-        tGridRenderer.updateScaleData(t, 1, &tScale);
-        tGridRenderer.updateColorData(t, 1, &tGridColor);
-    }
-
-    // update chunk renderer buffers
-    cGridRenderer.updatePositionData(0, cCount, &cPositions[0]);
-
-    for (size_t c = 0; c < cCount; c++) {
-        cGridRenderer.updateScaleData(c, 1, &cScale);
-        cGridRenderer.updateColorData(c, 1, &cGridColor);
-    }
 }
 
-
-void WorldManager::_initChunkData(const size_t cIdx, const Location& cLoc) {
-    const size_t tIdxBeg = cIdx * CHUNK_TILE_COUNT;
-    const int txBeg = CHUNK_TILE_COUNT_X * cLoc.x;
-    const int tyBeg = CHUNK_TILE_COUNT_Y * cLoc.y;
-    const int txEnd = txBeg + CHUNK_TILE_COUNT_X;
-    const int tyEnd = tyBeg + CHUNK_TILE_COUNT_Y;
-
-    size_t tIdx = tIdxBeg;
-
-    for (int ty = tyBeg; ty < tyEnd; ty++) {
-        for (int tx = txBeg; tx < txEnd; tx++) {
-            Location tLoc = {tx, ty};
-            tPositions[tIdx] = tileGridToWorld(tLoc);
-            tTexCoords[tIdx] = computeTexCoord( 64, 128,  64, 64); // TODO: need tile config
-            tIdx++;
-        }
-    }
-
-    cPositions[cIdx] = chunkGridToWorld(cLoc);
-    cTileIndices[cIdx] = tIdxBeg;
+void WorldManager::update() {
+    // _updateRenderers();
 }
 
 void WorldManager::render(const Camera& camera) {
-    tSpriteRenderer.render(camera);
-    tGridRenderer.renderOutline(camera, tLineWidth);
-    cGridRenderer.renderOutline(camera, cLineWidth);
+    spriteRenderer.render(camera);
+    // tGridRenderer.renderOutline(camera, tLineWidth);
+    // cGridRenderer.renderOutline(camera, cLineWidth);
+}
+
+void WorldManager::_setupComponents() {
+    ecs.registerComponent<ChunkData>();
+    ecs.registerComponent<Color4f>();
+    ecs.registerComponent<Position2i>();
+    ecs.registerComponent<Position3f>();
+    ecs.registerComponent<Scale2f>();
+    ecs.registerComponent<TexCoord4f>();
+    ecs.registerComponent<TileData>();
+    ecs.registerComponent<Velocity2f>();
+
+    ecs.registerTag<Active>();
+    ecs.registerTag<Visible>();
+}
+
+void WorldManager::_setupSystems() {
+    ecs.registerSystem<ChunkInit>();
+}
+
+void WorldManager::_setupEvents() {
+    ecs.registerEvent<OnCreate>();
+    ecs.registerEvent<OnDestroy>();
+    ecs.registerEvent<OnUpdate>();
+    ecs.registerEvent<OnRender>();
+
+    ecs.subscribeToEvent<OnCreate, ChunkInit>();
+}
+
+void WorldManager::_setupEntities() {
+
+    // create chunk entities
+    size_t cCount = 1;
+
+    for(size_t i = 0; i < cCount; i++) {
+        ecs.createEntity({
+            typeof(ChunkData),
+            typeof(Position2i),
+        });
+    }
+
+    // create tile entities
+    size_t tCount = cCount * CHUNK_TILE_COUNT;
+
+    for(size_t i = 0; i < tCount; i++) {
+        ecs.createEntity({
+            typeof(TileData),
+            typeof(Position3f),
+            typeof(Scale2f),
+            typeof(TexCoord4f),
+        });
+    }
 }
 
 } // namespace Core

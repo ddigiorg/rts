@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/defaults.hpp"
+#include "core/config/window_config.hpp"
 // #include "gfx/opengl_debug.hpp"
 
 #include <SDL3/SDL.h>
@@ -45,9 +45,9 @@ SDLManager::SDLManager() {
 
     // setup SDL window
     window = SDL_CreateWindow(
-        DEFAULT_WINDOW_TITLE,
-        DEFAULT_WINDOW_WIDTH,
-        DEFAULT_WINDOW_HEIGHT,
+        WINDOW_DEFAULT_TITLE,
+        WINDOW_DEFAULT_WIDTH,
+        WINDOW_DEFAULT_HEIGHT,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
     );
     if(window == nullptr) {
@@ -59,8 +59,8 @@ SDLManager::SDLManager() {
     // set window minimum size
     success = SDL_SetWindowMinimumSize(
         window,
-        DEFAULT_MIN_WINDOW_WIDTH,
-        DEFAULT_MIN_WINDOW_HEIGHT
+        WINDOW_DEFAULT_MIN_WIDTH,
+        WINDOW_DEFAULT_MIN_HEIGHT
     );
     if(!success) {
         std::cout << "SDL_SetWindowMinimumSize: SDL_Init() failed:" << std::endl;
@@ -71,7 +71,7 @@ SDLManager::SDLManager() {
     // setup other sdl options
     SDL_SetWindowMouseGrab(window, true);
     // SDL_HideCursor();
-    SDL_WarpMouseInWindow(window, DEFAULT_WINDOW_WIDTH / 2.0f, DEFAULT_WINDOW_HEIGHT / 2.0f);
+    SDL_WarpMouseInWindow(window, WINDOW_DEFAULT_WIDTH / 2.0f, WINDOW_DEFAULT_HEIGHT / 2.0f);
 
     // setup OpenGL gfx context
     context = SDL_GL_CreateContext(window);
@@ -95,7 +95,7 @@ SDLManager::SDLManager() {
     // glDebugMessageCallback(openglDebugMessageCallback, nullptr);
 
     // setup OpenGL states
-    glViewport(0, 0, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+    glViewport(0, 0, WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);

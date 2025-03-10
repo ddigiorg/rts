@@ -4,8 +4,8 @@
 
 class RandomFloatGenerator {
 public:
-    RandomFloatGenerator(float min, float max)
-        : distribution(min, max), generator(std::random_device{}()) {}
+    RandomFloatGenerator(float min, float max, unsigned int seed = 0)
+        : distribution(min, max), generator(seed) {}
 
     float get() { return distribution(generator); };
 
