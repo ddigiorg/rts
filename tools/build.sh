@@ -5,7 +5,7 @@
 # ==============================================================================
 
 # get path where this file resides
-this_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+proj_path="$(dirname $(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd) )"
 
 # get machine information
 os="$(uname -o)"
@@ -13,10 +13,10 @@ arch="$(uname -m)"
 
 # if using git bash then convert path to windows style
 if [ $os == "Msys" ]; then
-    this_path="$(cygpath -w "$this_path")"
+    proj_path="$(cygpath -w "$proj_path")"
 fi
 
-PROJECT_PATH="$this_path"
+PROJECT_PATH="$proj_path"
 PROJECT_BUILD_PATH="$PROJECT_PATH/build"
 DEPENDENCIES_SOURCE_PATH="$PROJECT_PATH/dependencies/source"
 DEPENDENCIES_BUILD_PATH="$PROJECT_PATH/dependencies/build"

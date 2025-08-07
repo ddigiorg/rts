@@ -1,17 +1,12 @@
 #pragma once
 
-#include "core/frame_state.hpp"
+#include "core/types.hpp"
 #include "graphics/camera.hpp"
 #include "input/control/player_camera_controller.hpp"
 #include "input/control/screen_camera_controller.hpp"
 #include "input/control/debug_overlay_controller.hpp"
 #include "ui/cursor.hpp"
 #include "ui/debug_overlay.hpp"
-
-using namespace Core;
-using namespace Graphics;
-
-namespace UI {
 
 class UIManager {
 public:
@@ -55,5 +50,3 @@ void UIManager::render() {
     cursor.render(mouseCamera);
     debugOverlay.render(screenCamera);
 }
-
-} // namespace UI

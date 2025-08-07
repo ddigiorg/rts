@@ -1,12 +1,9 @@
 #pragma once
 
-#include "core/frame_state.hpp"
+#include "core/types.hpp"
 #include "graphics/camera.hpp"
 
 #include <glm/glm.hpp>
-
-using namespace Core;
-using namespace Graphics;
 
 class PlayerCameraController {
 public:
@@ -18,9 +15,9 @@ private:
 };
 
 void PlayerCameraController::update(Camera& camera, const FrameState& frame) {
-    const Input::WindowInput& window = frame.input.window;
-    const Input::MouseInput& mouse = frame.input.mouse;
-    const Input::KeyboardInput& keyboard = frame.input.keyboard;
+    const WindowInput& window = frame.input.window;
+    const MouseInput& mouse = frame.input.mouse;
+    const KeyboardInput& keyboard = frame.input.keyboard;
 
     // handle window resize
     if (window.resized)

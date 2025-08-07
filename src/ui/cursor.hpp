@@ -1,22 +1,15 @@
 #pragma once
 
-#include "core/frame_state.hpp"
+#include "core/types.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
-#include "input/user_input.hpp"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
-using namespace Core;
-using namespace Graphics;
-using namespace Input;
-
-namespace UI {
-
 // shader filepaths
-constexpr const char* CURSOR_SELECT_VERT = "data/shaders/cursor-select.vert";
-constexpr const char* CURSOR_SELECT_FRAG = "data/shaders/cursor-select.frag";
+constexpr const char* CURSOR_SELECT_VERT = "assets/shaders/cursor-select.vert";
+constexpr const char* CURSOR_SELECT_FRAG = "assets/shaders/cursor-select.frag";
 
 // cursor constants
 constexpr glm::vec4 CURSOR_BOX_SELECT_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -153,5 +146,3 @@ void Cursor::render(Camera& camera) {
     glLineWidth(1.0f);
     glBindVertexArray(0);
 }
-
-} // namespace UI

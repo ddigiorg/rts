@@ -1,21 +1,17 @@
 #pragma once
 
-#include "core/config/window_config.hpp"
-// #include "gfx/opengl_debug.hpp"
+#include "config/defaults.hpp"
+#include "graphics/opengl_debug.hpp"
 
 #include <SDL3/SDL.h>
 #include <GL/glew.h>
 
 #include <iostream>
 
-namespace Core {
-
-// TODO: move any OpenGL functionality to gfx since that's where it belongs?
-
-class SDLManager {
+class RenderContext {
 public:
-    SDLManager();
-    ~SDLManager();
+    RenderContext();
+    ~RenderContext();
     void clearWindow();
     void swapWindowBuffers();
 
@@ -24,7 +20,7 @@ private:
     SDL_GLContext context = nullptr;
 };
 
-SDLManager::SDLManager() {
+RenderContext::RenderContext() {
     bool success = false;
 
     // initialize SDL
@@ -45,9 +41,9 @@ SDLManager::SDLManager() {
 
     // setup SDL window
     window = SDL_CreateWindow(
-        WINDOW_DEFAULT_TITLE,
-        WINDOW_DEFAULT_WIDTH,
-        WINDOW_DEFAULT_HEIGHT,
+        Defaults::Window::TITLE,
+        Defaults::Window::WIDTH,
+        Defaults::Window::HEIGHT,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
     );
     if(window == nullptr) {
@@ -59,8 +55,8 @@ SDLManager::SDLManager() {
     // set window minimum size
     success = SDL_SetWindowMinimumSize(
         window,
-        WINDOW_DEFAULT_MIN_WIDTH,
-        WINDOW_DEFAULT_MIN_HEIGHT
+        Defaults::Window::MIN_WIDTH,
+        Defaults::Window::MIN_HEIGHT
     );
     if(!success) {
         std::cout << "SDL_SetWindowMinimumSize: SDL_Init() failed:" << std::endl;
@@ -71,7 +67,7 @@ SDLManager::SDLManager() {
     // setup other sdl options
     SDL_SetWindowMouseGrab(window, true);
     // SDL_HideCursor();
-    SDL_WarpMouseInWindow(window, WINDOW_DEFAULT_WIDTH / 2.0f, WINDOW_DEFAULT_HEIGHT / 2.0f);
+    SDL_WarpMouseInWindow(window, Defaults::Window::WIDTH / 2.0f, Defaults::Window::HEIGHT / 2.0f);
 
     // setup OpenGL gfx context
     context = SDL_GL_CreateContext(window);
@@ -95,7 +91,7 @@ SDLManager::SDLManager() {
     // glDebugMessageCallback(openglDebugMessageCallback, nullptr);
 
     // setup OpenGL states
-    glViewport(0, 0, WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT);
+    glViewport(0, 0, Defaults::Window::WIDTH, Defaults::Window::HEIGHT);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -106,7 +102,7 @@ SDLManager::SDLManager() {
     // SDL_GL_SetSwapInterval(0); // Disable vsync
 }
 
-SDLManager::~SDLManager() {
+RenderContext::~RenderContext() {
     if (window)
         SDL_DestroyWindow(window);
     if (context)
@@ -115,19 +111,17 @@ SDLManager::~SDLManager() {
         SDL_Quit();
 }
 
-// void SDLManager::printOpenGLInfo() {
+// void RenderContext::printOpenGLInfo() {
 //     std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
 //     std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
 //     std::cout << "GL Version: " << glGetString(GL_VERSION) << std::endl;
 //     std::cout << "GLSL Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 // }
 
-void SDLManager::clearWindow() {
+void RenderContext::clearWindow() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void SDLManager::swapWindowBuffers() {
+void RenderContext::swapWindowBuffers() {
     SDL_GL_SwapWindow(window);
 }
-
-} // namespace Core

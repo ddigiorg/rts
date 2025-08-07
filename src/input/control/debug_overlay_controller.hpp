@@ -1,10 +1,7 @@
 #pragma once
 
-#include "core/frame_state.hpp"
+#include "core/types.hpp"
 #include "ui/debug_overlay.hpp"
-
-using namespace Core;
-using namespace UI;
 
 class DebugOverlayController {
 public:

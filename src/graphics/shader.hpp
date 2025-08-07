@@ -9,8 +9,6 @@
 
 #include <iostream>
 
-namespace Graphics {
-
 class Shader {
 public:
     Shader() {};
@@ -148,5 +146,3 @@ void Shader::_loadShaderFromFile(GLuint& shader, const char* filepath, GLuint ty
         exit(1);
     }
 }
-
-} // namespace Graphics

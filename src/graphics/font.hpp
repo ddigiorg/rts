@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config/assets.hpp"
 #include "graphics/shader.hpp"
 
 #include <GL/glew.h>
@@ -22,15 +23,6 @@
 // TODO: look into stb_truetype.h:
 // - https://github.com/nothings/stb/blob/master/stb_truetype.h
 // - https://github.com/0xc0dec/demos/blob/master/demos/stb-truetype/gl/Main.cpp
-
-namespace Graphics {
-
-// shaders
-constexpr const char* FONT_VERT = "data/shaders/font.vert";
-constexpr const char* FONT_FRAG = "data/shaders/font.frag";
-
-// default font
-constexpr const char* FONT_DEFAULT_FONT = "data/fonts/CommitMono-400-Regular.otf";
 
 struct Character {
     GLuint texture;
@@ -59,12 +51,12 @@ private:
     std::map<char, Character> characters;
 };
 
-Font::Font(const char* fontFilepath = FONT_DEFAULT_FONT) {
+Font::Font(const char* fontFilepath = Assets::Fonts::DEFAULT_FONT) {
     FT_Library ft;
     FT_Error error;
 
     // load shader
-    shader.load(FONT_VERT, FONT_FRAG);
+    shader.load(Assets::Shaders::FONT_VERT, Assets::Shaders::FONT_FRAG);
 
     // setup FreeType
     error = FT_Init_FreeType(&ft);
@@ -232,5 +224,3 @@ void Font::render(
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-
-} // namespace Graphics

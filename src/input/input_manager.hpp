@@ -1,11 +1,9 @@
 #pragma once
 
-#include "core/config/window_config.hpp"
-#include "input/user_input.hpp"
+#include "config/defaults.hpp"
+#include "core/types.hpp"
 
 #include <SDL3/SDL.h>
-
-namespace Input {
 
 class InputManager {
 public:
@@ -17,8 +15,8 @@ private:
 };
 
 InputManager::InputManager() {
-    input.window.width = WINDOW_DEFAULT_WIDTH;
-    input.window.height = WINDOW_DEFAULT_HEIGHT;
+    input.window.width = Defaults::Window::WIDTH;
+    input.window.height = Defaults::Window::HEIGHT;
     input.keyboard.buttons = SDL_GetKeyboardState(&input.keyboard.numkeys);
 }
 
@@ -68,5 +66,3 @@ const UserInput& InputManager::processEvents() {
 
     return input;
 }
-
-} // namespace Input

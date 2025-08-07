@@ -12,16 +12,16 @@ An open-world real time strategy game.
    - Windows: [MSVC](https://visualstudio.microsoft.com/vs/)
    - MacOS: [Clang](https://clang.llvm.org/)
 
-## Install
+## Build
 
-NOTE: If you are on Windows you must use `Git Bash` or `wsl` to run `setup.sh`.
+NOTE: If you are on Windows you must use `Git Bash` or `wsl` to run bash scripts.
 
 ```bash
-./setup.sh
+bash tools/build.sh
 ```
 
 ## Run Demos
 
 ```bash
-./run.sh ./build/demos/bin/Debug/game_2025_01_31.exe
+./build/demos/bin/Debug/{DEMO_NAME}.exe
 ```

@@ -7,8 +7,6 @@
 
 #include <iostream>
 
-namespace Graphics {
-
 class Texture {
 public:
     Texture() {};
@@ -69,5 +67,3 @@ void Texture::load(const char* filepath, bool flip) {
 void Texture::bind() {
     glBindTexture(GL_TEXTURE_2D, texture);
 }
-
-} // namespace Graphics

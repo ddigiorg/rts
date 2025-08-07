@@ -1,13 +1,11 @@
 #pragma once
 
-#include "core/config/window_config.hpp"
+#include "config/defaults.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 // https://learnopengl.com/Getting-started/Camera
-
-namespace Graphics {
 
 constexpr glm::vec3 CAMERA_WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -37,8 +35,8 @@ public:
     Camera(
         Type type = Type::Orthographic,
         Origin origin = Origin::BottomLeft,
-        float width = (float)WINDOW_DEFAULT_WIDTH,
-        float height = (float)WINDOW_DEFAULT_HEIGHT,
+        float width = (float)Defaults::Window::WIDTH,
+        float height = (float)Defaults::Window::HEIGHT,
         float speed = 10.0f,
         glm::vec3 position = glm::vec3(0.0f, 0.0f, 1.0f),
         glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f)
@@ -275,5 +273,3 @@ glm::vec2 Camera::screenToWorld(
 //               << rayWorld.y << ", "
 //               << rayWorld.z << std::endl;
 // }
-
-} // namespace Graphics

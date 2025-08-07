@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config/assets.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/texture.hpp"
@@ -7,13 +8,6 @@
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
-
-namespace Graphics {
-
-// filepaths
-constexpr const char* SPRITE_VERT = "data/shaders/sprite-instanced.vert";
-constexpr const char* SPRITE_FRAG = "data/shaders/sprite-instanced.frag";
-constexpr const char* SPRITE_PNG  = "data/images/sprite.png";
 
 class SpriteRenderer {
 public:
@@ -125,8 +119,8 @@ SpriteRenderer::SpriteRenderer() {
     glBindVertexArray(0);
 
     // setup shader
-    shader.load(SPRITE_VERT, SPRITE_FRAG);
-    texture.load(SPRITE_PNG, true);
+    shader.load(Assets::Shaders::SPRITE_INSTANCED_VERT, Assets::Shaders::SPRITE_INSTANCED_FRAG);
+    texture.load(Assets::Graphics::SPRITE_PNG, true);
 }
 
 SpriteRenderer::~SpriteRenderer() {
@@ -206,5 +200,3 @@ void SpriteRenderer::render(const Camera& camera) {
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)count);
     glBindVertexArray(0);
 }
-
-} // namespace Graphics

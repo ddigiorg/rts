@@ -1,75 +1,270 @@
 #pragma once
 
+// NOTE: references for SDL3 states:
+// - mouse states: https://wiki.libsdl.org/SDL3/SDL_MouseButtonFlags
+// - keyboard states: https://wiki.libsdl.org/SDL3/SDL_Scancode
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_scancode.h>
+
 #include <cstdint>
 #include <string>
 
-namespace Core {
-
 // =============================================================================
-// Aliases
-// =============================================================================
-
-using TileMask = uint8_t;
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-constexpr const int TILE_PIXELS_X = 32;
-constexpr const int TILE_PIXELS_Y = 32;
-
-// =============================================================================
-// Enums
-// =============================================================================
-
-enum class TileType : uint8_t {
-    None,
-    Grass,
-    WaterShallow,
-    Water,
-};
-
-// =============================================================================
-// Structs
+// Spatial
 // =============================================================================
 
 struct Position2f {
     float x, y;
+
+    Position2f(float x = 0.0f, float y = 0.0f)
+        : x(x), y(y) {}
+};
+
+struct Position3f {
+    float x, y, z;
+
+    Position3f(float x = 0.0f, float y = 0.0f, float z = 0.0f)
+        : x(x), y(y), z(z) {}
 };
 
 struct Position2i {
-    int x, y;
+    int32_t x, y;
+
+    Position2i(int32_t x = 0, int32_t y = 0)
+        : x(x), y(y) {}
 };
 
 struct Velocity2f {
     float x, y;
 };
 
+struct BoundingBox {
+    Position2f min, max;
+
+    BoundingBox(
+            const Position2f& min = Position2f(-0.5f, -0.5f),
+            const Position2f& max = Position2f( 0.5f,  0.5f))
+        : min(min), max(max) {}
+};
+
+// =============================================================================
+// Graphics
+// =============================================================================
+
+// sprite sheet
+constexpr const size_t SPRITE_SHEET_PIXELS_X = 384;
+constexpr const size_t SPRITE_SHEET_PIXELS_Y = 192;
+constexpr const float halfTexelX = 1.0f / float(SPRITE_SHEET_PIXELS_X);
+constexpr const float halfTexelY = 1.0f / float(SPRITE_SHEET_PIXELS_Y);
+
+// TODO
+// struct GraphicsBuffer {
+//     const GLuint index;
+//     const GLint size;
+//     const GLenum type;
+//     const GLsizei stride;
+//     const GLuint divisor;
+//     GLuint vbo;
+// };
+
 struct Color4f {
     float r, g, b, a;
 };
 
-struct TextureRegion {
+struct TexCoord4f {
     float u, v, w, h;
+
+    TexCoord4f(float u = 0.0f, float v = 0.0f, float w = 0.0f, float h = 0.0f)
+        : u(u), v(v), w(w), h(h) {}
 };
 
-struct BoundingBox {
-    Position2f leftTop;
-    Position2f rightBottom;
+// struct SpriteSheet {
+//     float sizeX; // pixels
+//     float sizeY; // pixels
+//     std::string filepath;
+// };
+
+inline TexCoord4f computeTexCoord(int pu, int pv, int pw, int ph) {
+    // NOTE: using half texel offsets to avoid texture bleeding
+    float tu = (float(pu) + 0.5f) * halfTexelX;
+    float tv = (float(pv) + 0.5f) * halfTexelY;
+    float tw = (float(pw) - 1.0f) * halfTexelX;
+    float th = (float(ph) - 1.0f) * halfTexelY;
+    return TexCoord4f(tu, tv, tw, th);
+}
+
+
+// =============================================================================
+// User Input
+// =============================================================================
+
+struct WindowInput {
+    bool resized = false;
+    int width = 0;
+    int height = 0;
 };
 
-struct SpriteSheet {
-    float sizeX; // pixels
-    float sizeY; // pixels
-    std::string filepath;
+struct MouseWheelInput {
+    bool moved = false;
+    float x = 0.0f;
+    float y = 0.0f;
 };
 
-struct Tile {
-    TileType type;
-    TileMask mask;
-    TextureRegion sprite; // TODO
+struct MouseInput {
+    bool moved = false;
+    float x = 0.0f;
+    float y = 0.0f;
+    float xrel = 0.0f;
+    float yrel = 0.0f;
+    uint32_t buttons;
+    MouseWheelInput wheel;
 };
 
+struct KeyboardInput {
+    int numkeys = 0;
+    const bool* buttons = nullptr;
+};
 
+struct UserInput {
+    bool quit = false;
+    WindowInput window;
+    MouseInput  mouse;
+    KeyboardInput keyboard;
+};
 
-} // namespace Core
+// =============================================================================
+// Game State
+// =============================================================================
+
+// TODO: should I rename frame_state.hpp to game_states.hpp?
+struct GameStates {
+    bool isDebugActive = false;
+    bool isSelecting = false;
+};
+
+// TODO: need to make game events more robust
+struct SelectEvent {
+    bool isActive = false;
+    float boxBegX = 0.0f; // mouse coords
+    float boxBegY = 0.0f; // mouse coords
+    float boxEndX = 0.0f; // mouse coords
+    float boxEndY = 0.0f; // mouse coords
+};
+
+// TODO: need to make game events more robust
+struct GameEvents {
+    SelectEvent select;
+};
+
+struct FrameState {
+    float dt = 1.0f;
+    UserInput input; // TODO: add inputPrev
+    GameStates states;
+    GameEvents events;
+};
+
+// =============================================================================
+// Game Object Configs
+// =============================================================================
+
+// using Animation = std::vector<TexCoord4f>;
+// using AnimationOriented = std::array<Animation, 8>;
+
+// struct TileConfig {
+//     Animation frames;
+// };
+
+// static const TileConfig GRASS_CONFIG {
+//     /*frames:*/Animation{computeTexCoord( 64, 128,  64, 64)},
+// };
+
+// static const TileConfig WATER_CONFIG {
+//     /*frames:*/Animation{computeTexCoord(128, 128,  64, 64)},
+// };
+
+// static const std::array<TileConfig, 2> TILE_CONFIGS {
+//     GRASS_CONFIG,
+//     WATER_CONFIG,
+// };
+
+// struct UnitConfig {
+//     std::string name;
+//     Scale2f scale;
+//     Scale2f hitbox;
+//     AnimationOriented frames;
+// };
+
+// static const UnitConfig BALL_CYAN_CONFIG {
+//     /*name:*/ "Ball Cyan",
+//     /*scale:*/ Scale2f{32.0f, 32.0f},
+//     /*hitbox:*/ Scale2f{32.0f, 32.0f},
+//     /*frames:*/ AnimationOriented{
+//         /*facing 0:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(128, 64,  64, 64),
+//         },
+//         /*facing 1:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(192, 64,  64, 64),
+//         },
+//         /*facing 2:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(256, 64,  64, 64),
+//         },
+//         /*facing 3:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(256, 64, -64, 64),
+//         },
+//         /*facing 4:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(192, 64, -64, 64),
+//         },
+//         /*facing 5:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(128, 64, -64, 64),
+//         },
+//         /*facing 6:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(  0, 64,  64, 64),
+//         },
+//         /*facing 7:*/ Animation{
+//             /*frame 0:*/ computeTexCoord( 64, 64,  64, 64),
+//         },
+//     },
+// };
+
+// static const UnitConfig BALL_MAGENTA_CONFIG {
+//     /*name:*/ "Ball Magenta",
+//     /*scale:*/ Scale2f{32.0f, 32.0f},
+//     /*hitbox:*/ Scale2f{32.0f, 32.0f},
+//     /*frames:*/ AnimationOriented{
+//         /*facing 0:*/ Animation {
+//             /*frame 0:*/ computeTexCoord(128, 0,  64, 64),
+//         },
+//         /*facing 1:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(192, 0,  64, 64),
+//         },
+//         /*facing 2:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(256, 0,  64, 64),
+//         },
+//         /*facing 3:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(256, 0, -64, 64),
+//         },
+//         /*facing 4:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(192, 0, -64, 64),
+//         },
+//         /*facing 5:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(128, 0, -64, 64),
+//         },
+//         /*facing 6:*/ Animation{
+//             /*frame 0:*/ computeTexCoord(  0, 0,  64, 64),
+//         },
+//         /*facing 7:*/ Animation{
+//             /*frame 0:*/ computeTexCoord( 64, 0,  64, 64),
+//         },
+//     },
+// };
+
+// enum UnitType {
+//     BALL_CYAN,
+//     BALL_MAGENTA,
+// };
+
+// // TODO: should this be in UnitManager?
+// static const std::array<UnitConfig, 2> UNIT_CONFIGS = {
+//     BALL_CYAN_CONFIG,
+//     BALL_MAGENTA_CONFIG,
+// };
