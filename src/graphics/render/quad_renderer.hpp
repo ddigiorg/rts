@@ -3,7 +3,7 @@
 #include "config/assets.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
-#include "util/assert.hpp"
+#include "utils/assert.hpp"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -19,6 +19,7 @@ public:
     void updateColors(const size_t offset, const size_t num, const void* data);
 
     void render(const Camera& camera);
+    void renderOutline(const Camera& camera);
     void renderOutline(const Camera& camera, const float lineWidth);
 
     void setCapacity(size_t newCapacity);
@@ -157,6 +158,16 @@ void QuadRenderer::render(const Camera& camera) {
     quadShader.setUniformMatrix4fv("uVP", 1, camera.getViewProjMatrix());
     glBindVertexArray(VAO);
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)count);
+    glBindVertexArray(0);
+}
+
+void QuadRenderer::renderOutline(const Camera& camera) {
+    if (count == 0) return;
+
+    quadShader.use();
+    quadShader.setUniformMatrix4fv("uVP", 1, camera.getViewProjMatrix());
+    glBindVertexArray(VAO);
+    glDrawArraysInstanced(GL_LINE_LOOP, 0, 4, (GLsizei)count);
     glBindVertexArray(0);
 }
 

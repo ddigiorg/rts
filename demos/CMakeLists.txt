@@ -7,8 +7,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/demos/bin)
 # Demos
 # ==============================================================================
 
-# test_render_sprites
-set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_render_sprites)
+# TODO: make this a function
+set(DEMO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/test_quad_renderer)
 get_filename_component(DEMO_NAME ${DEMO_SOURCE} NAME)
 add_executable(${DEMO_NAME} ${DEMO_SOURCE}/main.cpp)
 target_link_libraries(${DEMO_NAME} PRIVATE game)

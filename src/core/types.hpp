@@ -10,42 +10,84 @@
 #include <string>
 
 // =============================================================================
-// Spatial
+// Structs
 // =============================================================================
 
 struct Position2f {
     float x, y;
 
-    Position2f(float x = 0.0f, float y = 0.0f)
+    Position2f() : Position2f(0.0f, 0.0f) {}
+
+    Position2f(float x, float y)
         : x(x), y(y) {}
-};
-
-struct Position3f {
-    float x, y, z;
-
-    Position3f(float x = 0.0f, float y = 0.0f, float z = 0.0f)
-        : x(x), y(y), z(z) {}
 };
 
 struct Position2i {
-    int32_t x, y;
+    int x, y;
 
-    Position2i(int32_t x = 0, int32_t y = 0)
+    Position2i() : Position2i(0, 0) {}
+
+    Position2i(int x, int y)
         : x(x), y(y) {}
 };
 
-struct Velocity2f {
-    float x, y;
+struct Color4f {
+    float r, g, b, a;
+
+    Color4f() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
+
+    Color4f(float r, float g, float b, float a)
+        : r(r), g(g), b(b), a(a) {}
 };
 
 struct BoundingBox {
     Position2f min, max;
 
-    BoundingBox(
-            const Position2f& min = Position2f(-0.5f, -0.5f),
-            const Position2f& max = Position2f( 0.5f,  0.5f))
-        : min(min), max(max) {}
+    BoundingBox() : BoundingBox(0.0f, 0.0f, 32.0f, 32.0f) {}
+
+    BoundingBox(float minX, float minY, float maxX, float maxY)
+        : min(minX, minY), max(maxX, maxY) {}
+
+    BoundingBox(const Position2f& min, const Position2f& max)
+        : BoundingBox(min.x, min.y, max.x, max.y) {}
+    
+    float width() const { return max.x - min.x; }
+    float height() const { return max.y - min.y; }
+
+    Position2f center() const {
+        return { (min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f };
+    }
+
+    void translate(Position2f pos) {
+        float halfWidth  = (max.x - min.x) * 0.5f;
+        float halfHeight = (max.y - min.y) * 0.5f;
+
+        min.x = pos.x - halfWidth;
+        min.y = pos.y - halfHeight;
+        max.x = pos.x + halfWidth;
+        max.y = pos.y + halfHeight;
+    }
+
+    // bool intersects(const BoundingBox& other) const {
+    //     return !(max.x < other.min.x || min.x > other.max.x ||
+    //              max.y < other.min.y || min.y > other.max.y);
+    // }    
 };
+
+
+// struct Position3f {
+//     float x, y, z;
+
+//     Position3f(float x = 0.0f, float y = 0.0f, float z = 0.0f)
+//         : x(x), y(y), z(z) {}
+// };
+
+
+
+// struct Velocity2f {
+//     float x, y;
+// };
+
 
 // =============================================================================
 // Graphics
@@ -67,16 +109,14 @@ constexpr const float halfTexelY = 1.0f / float(SPRITE_SHEET_PIXELS_Y);
 //     GLuint vbo;
 // };
 
-struct Color4f {
-    float r, g, b, a;
-};
 
-struct TexCoord4f {
-    float u, v, w, h;
 
-    TexCoord4f(float u = 0.0f, float v = 0.0f, float w = 0.0f, float h = 0.0f)
-        : u(u), v(v), w(w), h(h) {}
-};
+// struct TexCoord4f {
+//     float u, v, w, h;
+
+//     TexCoord4f(float u = 0.0f, float v = 0.0f, float w = 0.0f, float h = 0.0f)
+//         : u(u), v(v), w(w), h(h) {}
+// };
 
 // struct SpriteSheet {
 //     float sizeX; // pixels
@@ -84,19 +124,21 @@ struct TexCoord4f {
 //     std::string filepath;
 // };
 
-inline TexCoord4f computeTexCoord(int pu, int pv, int pw, int ph) {
-    // NOTE: using half texel offsets to avoid texture bleeding
-    float tu = (float(pu) + 0.5f) * halfTexelX;
-    float tv = (float(pv) + 0.5f) * halfTexelY;
-    float tw = (float(pw) - 1.0f) * halfTexelX;
-    float th = (float(ph) - 1.0f) * halfTexelY;
-    return TexCoord4f(tu, tv, tw, th);
-}
+// inline TexCoord4f computeTexCoord(int pu, int pv, int pw, int ph) {
+//     // NOTE: using half texel offsets to avoid texture bleeding
+//     float tu = (float(pu) + 0.5f) * halfTexelX;
+//     float tv = (float(pv) + 0.5f) * halfTexelY;
+//     float tw = (float(pw) - 1.0f) * halfTexelX;
+//     float th = (float(ph) - 1.0f) * halfTexelY;
+//     return TexCoord4f(tu, tv, tw, th);
+// }
 
 
 // =============================================================================
 // User Input
 // =============================================================================
+
+// TODO: put in input/types.h
 
 struct WindowInput {
     bool resized = false;
