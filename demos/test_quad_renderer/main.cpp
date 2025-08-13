@@ -20,7 +20,7 @@ int main() {
     qr.setCount(COUNT);
 
     std::vector<BoundingBox> bboxes(COUNT, BoundingBox(0.0f, 0.0f, 32.0f, 32.0f));
-    std::vector<Color4f> colors(COUNT, Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+    std::vector<Vec4f> colors(COUNT, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Update quad renderer with positions and colors
     bboxes[0].translate({-32.0f,  32.0f});

@@ -8,57 +8,97 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
+#include <cmath>   // for std::floor
+#include <limits>  // for std::numeric_limits
+#include <utility> // for std::swap
+
+// =============================================================================
+// Types and Constants
+// =============================================================================
+
+using EntityID = uint16_t; // max 65534 active entities (last ID is always invalid or "null")
+
+constexpr const EntityID ENTITY_NULL_ID    = std::numeric_limits<EntityID>::max();
+constexpr const EntityID ENTITY_NULL_INDEX = std::numeric_limits<EntityID>::max();
+
+constexpr const size_t TILE_PIXELS_X = 32;
+constexpr const size_t TILE_PIXELS_Y = 32;
+constexpr const size_t GRID_CELL_COUNT_X = 16;
+constexpr const size_t GRID_CELL_COUNT_Y = 16;
+constexpr const size_t GRID_CELL_COUNT = GRID_CELL_COUNT_X * GRID_CELL_COUNT_Y;
+constexpr const size_t CELL_TILE_COUNT_X = 4;
+constexpr const size_t CELL_TILE_COUNT_Y = 4;
+constexpr const size_t CELL_PIXELS_X = CELL_TILE_COUNT_X * TILE_PIXELS_X;
+constexpr const size_t CELL_PIXELS_Y = CELL_TILE_COUNT_Y * TILE_PIXELS_Y;
 
 // =============================================================================
 // Structs
 // =============================================================================
 
-struct Position2f {
-    float x, y;
+struct Vec2f {
+    union {
+        float data[2];
+        struct { float x, y; };
+        struct { float w, h; };
+        struct { float u, v; };
+    };
 
-    Position2f() : Position2f(0.0f, 0.0f) {}
-
-    Position2f(float x, float y)
-        : x(x), y(y) {}
+    Vec2f() : Vec2f(0.0f, 0.0f) {}
+    Vec2f(float x, float y) : x(x), y(y) {}
 };
 
-struct Position2i {
-    int x, y;
+struct Vec4f {
+    union {
+        float data[4];
+        struct { float x, y, z, w; };
+        struct { float r, g, b, a; };
+    };
 
-    Position2i() : Position2i(0, 0) {}
-
-    Position2i(int x, int y)
-        : x(x), y(y) {}
+    Vec4f() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
+    Vec4f(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {}
 };
 
-struct Color4f {
-    float r, g, b, a;
+struct Vec2i {
+    union {
+        int data[2];
+        struct { int x, y; };
+        struct { int w, h; };
+    };
 
-    Color4f() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
+    Vec2i() : Vec2i(0, 0) {}
+    Vec2i(int x, int y) : x(x), y(y) {}
+};
 
-    Color4f(float r, float g, float b, float a)
-        : r(r), g(g), b(b), a(a) {}
+struct Vec3i {
+    union {
+        int data[3];
+        struct { int x, y, z; };
+    };
+
+    Vec3i() : Vec3i(0, 0, 0) {}
+    Vec3i(int x, int y, int z) : x(x), y(y), z(z) {}
 };
 
 struct BoundingBox {
-    Position2f min, max;
+    Vec2f min, max;
 
     BoundingBox() : BoundingBox(0.0f, 0.0f, 32.0f, 32.0f) {}
 
     BoundingBox(float minX, float minY, float maxX, float maxY)
         : min(minX, minY), max(maxX, maxY) {}
 
-    BoundingBox(const Position2f& min, const Position2f& max)
+    BoundingBox(const Vec2f& min, const Vec2f& max)
         : BoundingBox(min.x, min.y, max.x, max.y) {}
     
     float width() const { return max.x - min.x; }
     float height() const { return max.y - min.y; }
 
-    Position2f center() const {
+    Vec2f center() const {
         return { (min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f };
     }
 
-    void translate(Position2f pos) {
+    void translate(Vec2f pos) {
         float halfWidth  = (max.x - min.x) * 0.5f;
         float halfHeight = (max.y - min.y) * 0.5f;
 
@@ -74,20 +114,29 @@ struct BoundingBox {
     // }    
 };
 
+// =============================================================================
+// Helper Functions
+// =============================================================================
 
-// struct Position3f {
-//     float x, y, z;
+Vec2i getGridFromWorld(const Vec2f& worldPos, const Vec2f& gridSize) {
+    // TODO: could leverage bitshifts instead of divide
+    int gridPosX = std::floor(worldPos.x / gridSize.x);
+    int gridPosY = std::floor(worldPos.y / gridSize.y);
+    return Vec2i(gridPosX, gridPosY);
+}
 
-//     Position3f(float x = 0.0f, float y = 0.0f, float z = 0.0f)
-//         : x(x), y(y), z(z) {}
-// };
+Vec2f getWorldFromGrid(const Vec2i& gridPos, const Vec2f& gridSize) {
+    float worldPosX = gridPos.x * gridSize.x;
+    float worldPosY = gridPos.y * gridSize.y;
+    return Vec2f(worldPosX, worldPosY);
+}
 
-
-
-// struct Velocity2f {
-//     float x, y;
-// };
-
+template <typename T>
+void swap_and_pop(std::vector<T>& vec, size_t index) {
+    // if (index >= vec.size()) return; // TODO: make an assert instead
+    std::swap(vec[index], vec.back());
+    vec.pop_back();
+}
 
 // =============================================================================
 // Graphics

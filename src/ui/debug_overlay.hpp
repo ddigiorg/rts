@@ -57,8 +57,8 @@ void DebugOverlay::update(const Camera& camera, FrameState& frame) {
 
         // TODO: clean this up
         glm::vec2 mouseWorldPos = camera.screenToWorld(mouse.x, mouse.y, window.width, window.height);
-        Position2f pos = Position2f{mouseWorldPos.x, mouseWorldPos.y};
-        Position2i mouseIdx = Position2i{(int)pos.x, (int)pos.y};
+        Vec2f pos = Vec2f{mouseWorldPos.x, mouseWorldPos.y};
+        Vec2i mouseIdx = Vec2i{(int)pos.x, (int)pos.y};
         // Position2i chunkIdx = chunkWorldToGrid(pos);
         // Position2i sectorIdx = sectorWorldToGrid(pos);
         // Position2i tileIdx = tileWorldToGrid(pos);
