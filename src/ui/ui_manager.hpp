@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/types.hpp"
+#include "common/types.hpp"
 #include "graphics/camera.hpp"
 #include "input/control/player_camera_controller.hpp"
 #include "input/control/screen_camera_controller.hpp"

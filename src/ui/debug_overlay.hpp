@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/types.hpp"
+#include "common/types.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/font.hpp"
 

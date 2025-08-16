@@ -1,7 +1,6 @@
 #pragma once
 
-#include "config/assets.hpp"
-#include "config/defaults.hpp"
+#include "common/assets.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_buffer.hpp"
@@ -83,7 +82,7 @@ QuadRenderer::QuadRenderer()
     glBindVertexArray(0);
 
     // Setup shader
-    shader.load(Assets::Shaders::QUAD_INSTANCED_VERT, Assets::Shaders::QUAD_INSTANCED_FRAG);
+    shader.load(Assets::SHADER_QUAD_INSTANCED_VERT, Assets::SHADER_QUAD_INSTANCED_FRAG);
 }
 
 QuadRenderer::~QuadRenderer() {

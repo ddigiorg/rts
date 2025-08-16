@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config/assets.hpp"
+#include "common/assets.hpp"
 #include "graphics/shader.hpp"
 
 #include <GL/glew.h>
@@ -51,12 +51,12 @@ private:
     std::map<char, Character> characters;
 };
 
-Font::Font(const char* fontFilepath = Assets::Fonts::DEFAULT_FONT) {
+Font::Font(const char* fontFilepath = Assets::FONT_DEFAULT) {
     FT_Library ft;
     FT_Error error;
 
     // load shader
-    shader.load(Assets::Shaders::FONT_VERT, Assets::Shaders::FONT_FRAG);
+    shader.load(Assets::SHADER_FONT_VERT, Assets::SHADER_FONT_FRAG);
 
     // setup FreeType
     error = FT_Init_FreeType(&ft);

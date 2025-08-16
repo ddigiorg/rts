@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config/defaults.hpp"
+#include "common/config.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -35,8 +35,8 @@ public:
     Camera(
         Type type = Type::Orthographic,
         Origin origin = Origin::BottomLeft,
-        float width = (float)Defaults::Window::WIDTH,
-        float height = (float)Defaults::Window::HEIGHT,
+        float width  = (float)WINDOW_DEFAULT_SIZE_X,
+        float height = (float)WINDOW_DEFAULT_SIZE_Y,
         float speed = 10.0f,
         glm::vec3 position = glm::vec3(0.0f, 0.0f, 1.0f),
         glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f)

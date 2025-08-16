@@ -1,7 +1,7 @@
 #pragma once
 
-#include "config/defaults.hpp"
-#include "core/types.hpp"
+#include "common/config.hpp"
+#include "common/types.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -15,8 +15,8 @@ private:
 };
 
 InputManager::InputManager() {
-    input.window.width = Defaults::Window::WIDTH;
-    input.window.height = Defaults::Window::HEIGHT;
+    input.window.width  = WINDOW_DEFAULT_SIZE_X;
+    input.window.height = WINDOW_DEFAULT_SIZE_Y;
     input.keyboard.buttons = SDL_GetKeyboardState(&input.keyboard.numkeys);
 }
 

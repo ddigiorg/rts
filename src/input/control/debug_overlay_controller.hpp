@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/types.hpp"
+#include "common/types.hpp"
 #include "ui/debug_overlay.hpp"
 
 class DebugOverlayController {

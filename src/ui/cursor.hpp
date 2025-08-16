@@ -1,18 +1,11 @@
 #pragma once
 
-#include "core/types.hpp"
+#include "common/types.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/shader.hpp"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
-
-// shader filepaths
-constexpr const char* CURSOR_SELECT_VERT = "assets/shaders/cursor-select.vert";
-constexpr const char* CURSOR_SELECT_FRAG = "assets/shaders/cursor-select.frag";
-
-// cursor constants
-constexpr glm::vec4 CURSOR_BOX_SELECT_COLOR = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 class Cursor {
 public:
@@ -72,13 +65,17 @@ void Cursor::_setupBoxSelectPipeline() {
     glBindVertexArray(0);
 
     // load shader
-    boxSelectShader.load(CURSOR_SELECT_VERT, CURSOR_SELECT_FRAG);
+    boxSelectShader.load(Assets::SHADER_CURSOR_SELECT_VERT, Assets::SHADER_CURSOR_SELECT_FRAG);
     boxSelectShader.use();
-    float r = CURSOR_BOX_SELECT_COLOR.r;
-    float g = CURSOR_BOX_SELECT_COLOR.g;
-    float b = CURSOR_BOX_SELECT_COLOR.b;
-    float a = CURSOR_BOX_SELECT_COLOR.a;
-    boxSelectShader.setUniform4f("uColor", r, g, b, a); // TODO: pass vec4 directly into setUniform4f
+
+    // TODO: pass vec4 directly into setUniform4f
+    boxSelectShader.setUniform4f(
+        "uColor",
+        CURSOR_BOX_SELECT_COLOR.r,
+        CURSOR_BOX_SELECT_COLOR.g,
+        CURSOR_BOX_SELECT_COLOR.b,
+        CURSOR_BOX_SELECT_COLOR.a
+    );
 }
 
 void Cursor::_updateVertices() {
