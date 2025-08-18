@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.hpp"
+#include "common/types.hpp"
 #include "graphics/opengl_debug.hpp"
 
 #include <SDL3/SDL.h>

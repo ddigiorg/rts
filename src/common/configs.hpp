@@ -2,6 +2,10 @@
 
 #include "common/types.hpp"
 
+// =============================================================================
+// Entity
+// =============================================================================
+
 constexpr EntityConfig ENTITY_RED {
     EntityType::RED,                           // type
     Vec4<float>(1.0f, 0.0f, 0.0f, 1.0f),       // renderColor

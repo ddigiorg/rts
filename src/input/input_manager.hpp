@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/config.hpp"
 #include "common/types.hpp"
 
 #include <SDL3/SDL.h>

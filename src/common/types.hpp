@@ -26,8 +26,8 @@ struct Vec2 {
         struct { T w, h; };
         struct { T u, v; };
     };
-    constexpr Vec2() : x(0), y(0) {}
-    constexpr Vec2(T x_, T y_) : x(x_), y(y_) {}
+    constexpr Vec2() noexcept : x(0), y(0) {}
+    constexpr Vec2(T x_, T y_) noexcept : x(x_), y(y_) {}
 };
 
 // =============================================================================
@@ -40,52 +40,45 @@ struct Vec4 {
         T data[4];
         struct { T r, g, b, a; };
     };
-    constexpr Vec4() : r(0), g(0), b(0), a(0) {}
-    constexpr Vec4(T r_, T g_, T b_, T a_) : r(r_), g(g_), b(b_), a(a_) {}
+    constexpr Vec4() noexcept : r(0), g(0), b(0), a(0) {}
+    constexpr Vec4(T r_, T g_, T b_, T a_) noexcept : r(r_), g(g_), b(b_), a(a_) {}
 };
 // =============================================================================
 // BoundingBox
 // =============================================================================
 
 struct BoundingBox {
+    // TODO: make this a union float data[4] and vec2<float> min, max
     Vec2<float> min, max;
 
-    constexpr BoundingBox() : BoundingBox(0.0f, 0.0f, 32.0f, 32.0f) {}
+    constexpr BoundingBox() noexcept : BoundingBox(0.0f, 0.0f, 32.0f, 32.0f) {}
 
-    constexpr BoundingBox(float minX, float minY, float maxX, float maxY)
+    constexpr BoundingBox(float minX, float minY, float maxX, float maxY) noexcept
         : min(minX, minY), max(maxX, maxY) {}
 
-    constexpr BoundingBox(const Vec2<float>& min, const Vec2<float>& max)
+    constexpr BoundingBox(const Vec2<float>& min, const Vec2<float>& max) noexcept
         : BoundingBox(min.x, min.y, max.x, max.y) {}
     
-    float width() const { return max.x - min.x; }
-    float height() const { return max.y - min.y; }
+    constexpr float width() const noexcept { return max.x - min.x; }
+    constexpr float height() const noexcept { return max.y - min.y; }
 
-    Vec2<float> center() const {
+    constexpr Vec2<float> center() const noexcept {
         return { (min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f };
     }
 
-    void translate(Vec2<float> pos) {
-        min.x += pos.x;
-        min.y += pos.y;
-        max.x += pos.x;
-        max.y += pos.y;
+    constexpr void moveBy(const Vec2<float>& delta) noexcept {
+        min.x += delta.x;
+        min.y += delta.y;
+        max.x += delta.x;
+        max.y += delta.y;
     }
 
-    // void translate(Vec2<float> pos) {
-    //     float halfWidth  = (max.x - min.x) * 0.5f;
-    //     float halfHeight = (max.y - min.y) * 0.5f;
-
-    //     min.x = pos.x - halfWidth;
-    //     min.y = pos.y - halfHeight;
-    //     max.x = pos.x + halfWidth;
-    //     max.y = pos.y + halfHeight;
-    // }
-
-    // bool intersects(const BoundingBox& other) const {
-    //     return !(max.x < other.min.x || min.x > other.max.x ||
-    //              max.y < other.min.y || min.y > other.max.y);
-    // }    
+    constexpr void moveTo(const Vec2<float>& pos) noexcept {
+        float halfW = (max.x - min.x) * 0.5f;
+        float halfH = (max.y - min.y) * 0.5f;
+        min.x = pos.x - halfW;  max.x = pos.x + halfW;
+        min.y = pos.y - halfH;  max.y = pos.y + halfH;
+    }
 };
 
 // =============================================================================
@@ -129,32 +122,50 @@ constexpr const int32_t SECTOR_PIXELS_Y = SECTOR_TILES_X * TILE_PIXELS_Y;
 // =============================================================================
 
 using ChunkHash = uint32_t;
-using ChunkGrid = Vec2<int16_t>;
+using ChunkCell = Vec2<int16_t>;
 
-constexpr ChunkHash hashChunkGrid(const ChunkGrid& pos) noexcept {
+constexpr ChunkHash hashChunkCell(const ChunkCell& pos) noexcept {
     // Using large primes for better unordered_map performance
     return (static_cast<ChunkHash>(pos.x) * 73856093u) ^
            (static_cast<ChunkHash>(pos.y) * 19349663u);
 }
 
-constexpr ChunkGrid CHUNK_GRID_NULL{
+constexpr ChunkCell CHUNK_CELL_NULL{
     std::numeric_limits<int16_t>::max(),
     std::numeric_limits<int16_t>::max()
 };
 
-constexpr ChunkHash CHUNK_HASH_NULL = hashChunkGrid(CHUNK_GRID_NULL);
+constexpr ChunkHash CHUNK_HASH_NULL = hashChunkCell(CHUNK_CELL_NULL);
 
 struct ChunkHashFunctor {
-    size_t operator()(const ChunkGrid& pos) const noexcept {
-        return static_cast<size_t>(hashChunkGrid(pos));
+    size_t operator()(const ChunkCell& pos) const noexcept {
+        return static_cast<size_t>(hashChunkCell(pos));
     }
 };
 
 struct ChunkEqualFunctor {
-    bool operator()(const ChunkGrid& a, const ChunkGrid& b) const noexcept{
+    bool operator()(const ChunkCell& a, const ChunkCell& b) const noexcept{
         return a.x == b.x && a.y == b.y;
     }
 };
+
+// using ChunkNeighborIdx = int32_t;
+
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_NULL = -1;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_L    =  0;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_R    =  1;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_D    =  2;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_U    =  3;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_DL   =  4;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_DR   =  5;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_UL   =  6;
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_UR   =  7;
+
+// constexpr const ChunkNeighborIdx CHUNK_NEIGHBOR_LUT[3][3] = {
+//     {CHUNK_NEIGHBOR_DL, CHUNK_NEIGHBOR_L,    CHUNK_NEIGHBOR_UL},
+//     {CHUNK_NEIGHBOR_D,  CHUNK_NEIGHBOR_NULL, CHUNK_NEIGHBOR_U },
+//     {CHUNK_NEIGHBOR_DR, CHUNK_NEIGHBOR_R,    CHUNK_NEIGHBOR_UR}
+// };
 
 constexpr const int32_t CHUNK_TILES_X   = 32;
 constexpr const int32_t CHUNK_TILES_Y   = 32;
@@ -224,7 +235,7 @@ constexpr Vec4<float> CURSOR_BOX_SELECT_COLOR = {1.0f, 1.0f, 1.0f, 1.0f};
 
 // NOTE: max 65534 active entities (last ID is always invalid or "null")
 using EntityID  = uint16_t;
-using EntityIdx = uint16_t;
+using EntityIdx = uint32_t;
 
 constexpr const EntityID  ENTITY_ID_NULL  = std::numeric_limits<EntityID>::max();
 constexpr const EntityIdx ENTITY_IDX_NULL = std::numeric_limits<EntityIdx>::max();
@@ -244,14 +255,14 @@ struct EntityConfig {
 };
 
 template <typename T>
-inline void entityDataRemove(std::vector<T>& vec, size_t index) {
+inline void vector_swap_pop(std::vector<T>& vec, size_t index) {
     ASSERT(index < vec.size(), "Index out of bounds.");
-    vec[index] = std::move(src.back());
+    vec[index] = std::move(vec.back());
     vec.pop_back();
 }
 
 template <typename T>
-void entityDataMoveTo(std::vector<T>& dst, std::vector<T>& src,  size_t index) {
+void vector_move_to(std::vector<T>& dst, std::vector<T>& src, size_t index) {
     ASSERT(index < src.size(), "Index out of bounds.");
     dst.push_back(std::move(src[index]));
     src[index] = std::move(src.back());
