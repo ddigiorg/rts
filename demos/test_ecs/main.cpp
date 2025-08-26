@@ -1,31 +1,28 @@
-#include "core/ecs.hpp"
+#include "ecs/world.hpp"
 
-struct Disabled : ECS::Tag {};
+struct Disabled : ECS::IComponentData {};
 
-struct Position : ECS::Component {
+struct Position : ECS::IComponentData {
     float x, y;
 };
 
-struct Velocity : ECS::Component {
+struct Velocity : ECS::IComponentData {
     float x, y;
 };
 
-struct Poop : ECS::Component {
+struct Poop : ECS::IComponentData {
     float x, y;
 };
 
 int main() {
-    ECS::Manager ecs;
+    ECS::World ecs;
 
     // register components
     ecs.registerComponent<Position>();
     ecs.registerComponent<Velocity>();
     ecs.registerTag<Disabled>();
 
-    ecs.createEntity({ECS::cidof(Position), ECS::cidof(Velocity)});
-
-    // world.createEntity({ECS::typeof(Position), ECS::typeof(Velocity), ECS::typeof(Poop)});
-    // world.createEntity({ECS::cidof(Position), ECS::cidof(Velocity)});
+    ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
 
     ecs.print();
 
