@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ecs/types.hpp"
+#include "ecs/archetype.hpp"
 #include "ecs/component.hpp"
 #include "ecs/entity.hpp"
 #include "utils/assert.hpp"
@@ -9,7 +10,6 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
-#include <limits> // for std::numeric_limits
 #include <unordered_map>
 #include <vector>
 
@@ -17,8 +17,7 @@ namespace ECS {
 
 class World {
 public:
-    // World();
-    // ~World();
+    World();
 
     // entity functions
     // bool hasEntity(id_t entityId) const;
@@ -61,10 +60,7 @@ private:
     void _freeEntity(id_t entityId);
 
     // archetype functions
-    // id_t _getOrCreateArchetype(const std::vector<id_t>& componentIds);
-    // void _pushChunkOnArchetype(id_t archetypeId);
-    // void _popChunkOffArchetype(id_t archetypeId);
-    // void _freeChunks();
+    id_t _getOrCreateArchetype(const std::vector<id_t>& componentIds);
 
     // entity data
     std::vector<Entity> entities{};
@@ -76,25 +72,22 @@ private:
     id_t componentCount{0};
 
     // archetype data
-    // std::vector<Archetype> archetypes;
-    // std::unordered_map<mask_t, id_t> archetypeMaskToId;
+    std::unordered_map<mask_t, id_t> archetypeMaskToId{};
+    std::vector<Archetype> archetypes{};
+    id_t nextArchetypeId{0};
 
-    // EventManager eventMgr;
-    // QueryManager queryMgr;
-    // SystemManager systemMgr;
+    // event data
+    // query data
+    // system data
 };
 
 // =============================================================================
 // Constructor and Destructor
 // =============================================================================
 
-// World::World() {
-//     _getOrCreateArchetype({}); // create default archetype with no components
-// }
-
-// World::~World() {
-//     _freeChunks();
-// }
+World::World() {
+    _getOrCreateArchetype({}); // create default archetype with no components
+}
 
 // =============================================================================
 // Entity Functions
@@ -107,9 +100,9 @@ private:
 
 id_t World::createEntity(const std::vector<id_t>& componentIds) {
     id_t eId = _nextEntity();
-    // id_t aId = _getOrCreateArchetype(componentIds);
-    // std::vector<ChunkMeta >& chunkMeta = aChunkMeta[aId];
-    // std::vector<ChunkData*>& chunkData = aChunkData[aId];
+    id_t aId = _getOrCreateArchetype(componentIds); // TODO return reference instead
+    Archetype& archetype = archetypes[aId];
+    // archetype.insertEntity();
 
     // // allocate new chunk if no chunks exist in archetype
     // if (chunkData.empty()) {
@@ -184,7 +177,7 @@ id_t World::registerComponent() {
     static_assert(std::is_base_of<IComponentData, C>::value, "Component must inherit from IComponentData base.");
     ASSERT(componentCount < Component::CAPACITY, "Component registry full.");
     ASSERT(!hasComponent(id), "Component \"" << typeid(C).name() << "\" already registered.");
-    components[id].initialize(id, sizeof(C));
+    components[id].set(id, sizeof(C));
     componentCount++;
     return id;
 }
@@ -195,7 +188,7 @@ id_t World::registerTag() {
     static_assert(std::is_base_of<IComponentData, C>::value, "Component must inherit from IComponentData base.");
     ASSERT(componentCount < Component::CAPACITY, "Component registry full.");
     ASSERT(!hasComponent(id), "Component \"" << typeid(C).name() << "\" already registered.");
-    components[id].initialize(id, 0);
+    components[id].set(id, 0);
     componentCount++;
     return id;
 }
@@ -204,114 +197,34 @@ id_t World::registerTag() {
 // Archetype Functions
 // =============================================================================
 
-// id_t World::_getOrCreateArchetype(const std::vector<id_t>& componentIds) {
+id_t World::_getOrCreateArchetype(const std::vector<id_t>& componentIds) {
 
-//     // sort input component ids to normalize
-//     std::vector<id_t> sortedIds = componentIds;
-//     std::sort(sortedIds.begin(), sortedIds.end());
+    // normalize component ids by sorting
+    std::vector<id_t> sortedIds = componentIds;
+    std::sort(sortedIds.begin(), sortedIds.end());
 
-//     // build mask
-//     mask_t aMask = 0;
-//     for (id_t cId : sortedIds) {
-//         aMask |= (mask_t(1) << cId);
-//     }
+    // build archetype mask
+    mask_t mask = 0;
+    for (id_t cId : sortedIds) {
+        mask |= (mask_t(1) << cId);
+    }
 
-//     // check if archetype already exists and return it
-//     auto it = aMaskToId.find(aMask);
-//     if (it != aMaskToId.end()) {
-//         return it->second;
-//     }
+    // if archetype already exists then return it
+    auto it = archetypeMaskToId.find(mask);
+    if (it != archetypeMaskToId.end()) {
+        return it->second;
+    }
 
-//     // allocate new archetype
-//     id_t aId = aNextId++;
-//     ArchetypeRecord archetype {
-//         /*   archetypeId=*/ aId,
-//         /* archetypeMask=*/ aMask,
-//         /*  openChunkIdx=*/ 0,
-//         /*entityCapacity=*/ 0,
-//         /*    components=*/ {},
-//         /*     neighbors=*/ {},
-//     };
-//     archetype.components.reserve(sortedIds.size() + 1);
+    // otherwise allocate a new archetype
+    id_t id = nextArchetypeId++;
+    std::vector<Component*> componentPtrs; 
+    for (id_t cId : sortedIds) {
+        componentPtrs.push_back(&components[cId]);
+    }
+    archetypes.emplace_back(id, mask, componentPtrs);
 
-//     // add entity id component
-//     size_t aSize = 0;
-//     size_t idSize = sizeof(id_t);
-//     archetype.components.push_back({ INVALID_ID, idSize, 0});
-//     aSize += idSize;
-
-//     // gather component metadata
-//     for (id_t cId : sortedIds) {
-//         const ComponentRecord& c = components[cId];
-//         archetype.components.push_back(
-//             ComponentRecord {
-//                 /*componentId=*/ c.componentId,
-//                 /*elementSize=*/ c.elementSize,
-//                 /*arrayOffset=*/ 0,
-//                 /*  arraySize=*/ 0, 
-//             }
-//         );
-//         aSize += c.elementSize;
-//     }
-
-//     ASSERT(aSize < CHUNK_DATA_SIZE, "Archetype size exceeds chunk capacity");
-
-//     archetype.entityCapacity = (aSize > 0) ? CHUNK_DATA_SIZE / aSize : CHUNK_DATA_SIZE;
-
-//     // assign component offsets
-//     size_t offset = 0;
-//     size_t size = 0;
-//     for (auto& ac : archetype.components) {
-//         ac.arrayOffset = offset;
-//         ac.arraySize = ac.elementSize * archetype.entityCapacity;
-//         offset += ac.arraySize;
-//     }
-
-//     // append new archetype
-//     aMaskToId[aMask] = aId;
-//     archetypes.push_back(std::move(archetype));
-//     aChunkMeta.push_back({});
-//     aChunkData.push_back({});
-
-//     return aId;
-// }
-
-// void World::_pushChunkOnArchetype(id_t archetypeId) {
-//     ASSERT(archetypeId < archetypes.size(), "Archetype " << archetypeId << " does not exist.");
-//     ArchetypeRecord& aRecord = archetypes[archetypeId];
-
-//     ChunkMeta cMeta {
-//         /*   archetypeId=*/ archetypeId,
-//         /*      chunkIdx=*/ (idx_t)aChunkData[archetypeId].size(),
-//         /*   entityCount=*/ 0,
-//         /*entityCapacity=*/ aRecord.entityCapacity,
-//         /*    cidToArray=*/ {},
-//     };
-
-//     ChunkData* cData = static_cast<ChunkData*>(malloc(CHUNK_DATA_SIZE));
-
-//     for (const auto& c : aRecord.components) {
-//         if (c.componentId == INVALID_ID) continue;
-//         ChunkArrayRecord& ca = cMeta.cidToArray[c.componentId];
-//         ca.addr = reinterpret_cast<void*>(reinterpret_cast<std::byte*>(cData) + c.arrayOffset);
-//         ca.size = c.arraySize;
-//     }
-
-//     aChunkMeta[archetypeId].push_back(cMeta);
-//     aChunkData[archetypeId].push_back(cData);
-// }
-
-// void World::_popChunkOffArchetype(id_t archetypeId) {
-
-// }
-
-// void World::_freeChunks() {
-//     for (auto& chunks : aChunkData) {
-//         for (auto chunk : chunks) {
-//             free(chunk);
-//         }
-//     }
-// }
+    return id;
+}
 
 // =============================================================================
 // Print Functions
