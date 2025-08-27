@@ -70,7 +70,7 @@ bool Chunk::hasComponent() const {
 template <typename C>
 C* Chunk::getArray() {
     ASSERT(archetype != nullptr, "Chunk has no archetype set.");
-    size_t offset = archetype->getOffset(getComponentId<C>());
+    size_t offset = archetype->getArrayOffset(getComponentId<C>());
     ASSERT(offset + sizeof(C) * entityCount <= BUFFER_SIZE,
            "Component array exceeds chunk buffer.");
     return reinterpret_cast<C*>(buffer.data() + offset);
@@ -79,7 +79,7 @@ C* Chunk::getArray() {
 template <typename C>
 const C* Chunk::getArray() const {
     ASSERT(archetype != nullptr, "Chunk has no archetype set.");
-    size_t offset = archetype->getOffset(getComponentId<C>());
+    size_t offset = archetype->getArrayOffset(getComponentId<C>());
     ASSERT(offset + sizeof(C) * entityCount <= BUFFER_SIZE,
            "Component array exceeds chunk buffer.");
     return reinterpret_cast<const C*>(buffer.data() + offset);

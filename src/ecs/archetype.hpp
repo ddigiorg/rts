@@ -12,65 +12,69 @@ namespace ECS {
 
 class Archetype {
 public:
-    Archetype(id_t id_, mask_t mask_, const std::vector<Component*>& components);
+    Archetype(id_t id_, mask_t mask_, const std::vector<Component*>& components_);
     ~Archetype();
 
-    // bool hasComponent(id_t id);
+    bool hasComponent(id_t id) const { return (mask & (mask_t(1) << id)) != 0; }
 
-    // void insertEntity(Entity& entity);
+    void insertEntity(Entity& entity);
     // void removeEntity(Entity& entity);
     // void moveEntityRight(Entity& entity, id_t componentId);
     // void moveEntityLeft(Entity& entity, id_t componentId);
 
     id_t getId() const { return id; }
     mask_t getMask() const { return mask; }
-    // size_t getOffset(id_t id);
-    // std::vector<id_t> getComponentIds();
+    idx_t getChunkOpenIdx() const { return chunkOpenIdx; }
+    uint32_t getCapacity() const { return capacity; }
+    size_t getChunkCount() const { return chunks.size(); }
     std::vector<Chunk*>& getChunks() { return chunks; }
+    std::vector<Component*> getComponents() const { return components; };
+    size_t getArrayOffset(id_t id) const;
 
 private:
-    // void _pushChunk();
-    // void _popChunk();
+    void _pushChunk();
+    void _popChunk();
 
-    id_t   id;
-    mask_t mask;
-    idx_t  chunkOpenIdx;
-    idx_t  chunkEntityCapacity;
-
-    std::unordered_map<id_t, size_t> idToIdx; // TODO: implement this in constructor
-    std::array<size_t, Component::CAPACITY> idToOffset;
-    std::array<id_t,   Component::CAPACITY> leftArchetypes;
-    std::array<id_t,   Component::CAPACITY> rightArchetypes;
+    id_t   id;           // unique archetype identifier
+    mask_t mask;         // bitmask set bits representing components
+    uint32_t capacity;   // chunk entity capacity
+    idx_t  chunkOpenIdx; // open chunk available for new entities
 
     std::vector<Chunk*> chunks;
+    std::vector<Component*> components;
+
+    std::array<size_t, Component::CAPACITY> offsets;
+    std::array<id_t,   Component::CAPACITY> leftArchetypes;
+    std::array<id_t,   Component::CAPACITY> rightArchetypes;
 };
 
-Archetype::Archetype(id_t id_, mask_t mask_, const std::vector<Component*>& components) {
+Archetype::Archetype(id_t id_, mask_t mask_, const std::vector<Component*>& components_) {
     id = id_;
     mask = mask_;
+    capacity = Chunk::BUFFER_SIZE;
     chunkOpenIdx = 0;
-    idToOffset.fill(SIZE_MAX);
+    chunks.reserve(1);
+    components = components_;
+    offsets.fill(SIZE_MAX);
     leftArchetypes.fill(INVALID_ID);
     rightArchetypes.fill(INVALID_ID);
-    chunks.reserve(1);
 
-    // gather component metadata
+    // calculate the size of all components for a single entity
     size_t entitySize = sizeof(id_t); // NOTE: first chunk component is always entityIds
-    for (Component* c : components) {
-        entitySize += c->getSize();
+    for (Component* component : components) {
+        entitySize += component->getSize();
+    }
+    ASSERT(entitySize < Chunk::BUFFER_SIZE, "Archetype component data size exceeds chunk buffer size.");
+    if (entitySize > 0) {
+        capacity = Chunk::BUFFER_SIZE / entitySize;
     }
 
-    ASSERT(entitySize < Chunk::BUFFER_SIZE, "Archetype component data size exceeds chunk buffer size.");
-
-    chunkEntityCapacity = (entitySize > 0)
-        ? Chunk::BUFFER_SIZE / entitySize
-        : Chunk::BUFFER_SIZE;
-
     // assign component offsets
-    size_t offset = sizeof(id_t) * chunkEntityCapacity;
-    for (Component* c : components) {
-        idToOffset[c->getId()] = offset;
-        offset += c->getSize() * chunkEntityCapacity;
+    size_t offset = sizeof(id_t) * capacity;
+    for (size_t c = 0; c < components.size(); c++) {
+        Component* component = components[c];
+        offsets[component->getId()] = offset;
+        offset += component->getSize() * capacity;
     }
 }
 
@@ -78,6 +82,35 @@ Archetype::~Archetype() {
     for (Chunk* chunk : chunks) {
         if (chunk != nullptr) free(chunk);
     }
+}
+
+size_t Archetype::getArrayOffset(id_t id) const {
+    ASSERT(hasComponent(id), "Archetype does not contain component " << id << ".");
+    return offsets[id];
+}
+
+void Archetype::insertEntity(Entity& entity) {
+
+    // allocate new chunk if no chunks exist in archetype
+    if (chunks.empty()) {
+        _pushChunk(); // TODO: implement
+    }
+
+    // allocate new chunk if back chunk is full
+    if (chunks.back()->isFull()) {
+        chunkOpenIdx = chunks.size();
+        _pushChunk();
+    }
+
+    // TODO: detect open chunk and add to it
+}
+
+void Archetype::_pushChunk() {
+
+}
+
+void Archetype::_popChunk() {
+
 }
 
 // void World::_pushChunkOnArchetype(id_t archetypeId) {

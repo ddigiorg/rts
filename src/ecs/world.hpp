@@ -48,7 +48,7 @@ public:
 
     // print functions
     void print();
-    // void printArchetypes();
+    void printArchetypes();
     // void printChunks();
     void printComponents();
     void printEntities();
@@ -103,13 +103,6 @@ id_t World::createEntity(const std::vector<id_t>& componentIds) {
     id_t aId = _getOrCreateArchetype(componentIds); // TODO return reference instead
     Archetype& archetype = archetypes[aId];
     // archetype.insertEntity();
-
-    // // allocate new chunk if no chunks exist in archetype
-    // if (chunkData.empty()) {
-    //     _pushChunkOnArchetype(aId);
-    // }
-
-    // TODO: archetype and chunk stuff here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     return eId;
 }
 
@@ -231,28 +224,32 @@ id_t World::_getOrCreateArchetype(const std::vector<id_t>& componentIds) {
 // =============================================================================
 
 void World::print() {
-    // printArchetypes();
+    printArchetypes();
     // printChunks();
     printComponents();
     printEntities();
 }
 
-// void World::printArchetypes() {
-//     std::cout << "archetypes:" << std::endl;
-//     for (const auto& a : archetypes) {
-//         std::cout << "  - archetypeId: "    << a.archetypeId    << std::endl;
-//         std::cout << "    archetypeMask: "  << a.archetypeMask  << std::endl;
-//         std::cout << "    openChunkIdx: "   << a.openChunkIdx   << std::endl;
-//         std::cout << "    entityCapacity: " << a.entityCapacity << std::endl;
-//         std::cout << "    components: "                         << std::endl;
-//         for (const auto& c : a.components) {
-//             std::cout << "    - componentId: " << c.componentId << std::endl;
-//             std::cout << "      elementSize: " << c.elementSize << std::endl;
-//             std::cout << "      arrayOffset: " << c.arrayOffset << std::endl;
-//             std::cout << "      arraySize: "   << c.arraySize   << std::endl;
-//         }
-//     }
-// }
+void World::printArchetypes() {
+    std::cout << "archetypes:" << std::endl;
+    for (const Archetype& a : archetypes) {
+        std::cout << "  - id: "           << a.getId()            << std::endl;
+        std::cout << "    mask: "         << a.getMask()          << std::endl;
+        std::cout << "    chunkOpenIdx: " << a.getChunkOpenIdx()  << std::endl;
+        std::cout << "    capacity: "     << a.getCapacity()      << std::endl;
+        std::cout << "    chunkCount: "   << a.getChunkCount()    << std::endl;
+        std::cout << "    components: "                           << std::endl;
+        std::cout << "    - id: "         << INVALID_ID           << std::endl;
+        std::cout << "      size: "       << sizeof(id_t)         << std::endl;
+        std::cout << "      offset: "     << 0                    << std::endl;
+        for (Component* c : a.getComponents()) {
+            id_t id = c->getId();
+            std::cout << "    - id: "     << id                   << std::endl;
+            std::cout << "      size: "   << c->getSize()         << std::endl;
+            std::cout << "      offset: " << a.getArrayOffset(id) << std::endl;
+        }
+    }
+}
 
 void World::printComponents() {
     std::cout << "components:" << std::endl;
