@@ -19,20 +19,11 @@ class World {
 public:
     World();
 
-    // entity functions
-    // bool hasEntity(id_t entityId) const;
-    id_t createEntity(const std::vector<id_t>& componentIds);
-    // void removeEntity(id_t entityId);
-    // template <typename C>
-    // void insertEntityComponent();
-    // template <typename C>
-    // void removeEntityComponent();
-    // template <typename C>
-    // C* getEntityData(id_t entityId);
-    // template <typename C>
-    // void setEntityData(id_t entityId, const C& value);
-
     // component functions
+    template <typename C>
+    id_t registerComponent();
+    template <typename C>
+    id_t registerTag();
     template <typename C>
     bool hasComponent() const;
     bool hasComponent(id_t id) const;
@@ -40,9 +31,23 @@ public:
     bool isTag() const;
     bool isTag(id_t id) const;
     template <typename C>
-    id_t registerComponent();
-    template <typename C>
-    id_t registerTag();
+    const Component& getComponent() const;
+    const Component& getComponent(id_t id) const;
+
+    // entity functions
+    id_t createEntity(const std::vector<id_t>& componentIds);
+    // void removeEntity(id_t entityId);
+    // template <typename C>
+    // void insertEntityComponent();
+    // template <typename C>
+    // void removeEntityComponent();
+    // bool hasEntity(id_t entityId) const;
+    // template <typename C>
+    // C* getEntityData(id_t entityId);
+    // template <typename C>
+    // void setEntityData(id_t entityId, const C& value);
+
+
 
     // QueryIterator query(Query q);
 
@@ -55,26 +60,26 @@ public:
 
 private:
 
-    // entity functions
-    id_t _nextEntity();
-    void _freeEntity(id_t entityId);
-
     // archetype functions
     id_t _getOrCreateArchetype(const std::vector<id_t>& componentIds);
 
-    // entity data
-    std::vector<Entity> entities{};
-    std::vector<id_t> freeEntityIds{};
-    id_t nextEntityId{0};
-
-    // component data
-    std::array<Component, Component::CAPACITY> components{};
-    id_t componentCount{0};
+    // entity functions
+    id_t _nextEntity();
+    void _freeEntity(id_t entityId);
 
     // archetype data
     std::unordered_map<mask_t, id_t> archetypeMaskToId{};
     std::vector<Archetype> archetypes{};
     id_t nextArchetypeId{0};
+
+    // component data
+    std::array<Component, Component::CAPACITY> components{};
+    id_t componentCount{0};
+
+    // entity data
+    std::vector<Entity> entities{};
+    std::vector<id_t> freeEntityIds{};
+    id_t nextEntityId{0};
 
     // event data
     // query data
@@ -89,62 +94,76 @@ World::World() {
     _getOrCreateArchetype({}); // create default archetype with no components
 }
 
+
 // =============================================================================
-// Entity Functions
+// Archetype Functions
 // =============================================================================
 
-// bool World::hasEntity(id_t entityId) const {
-//     // TODO: need to detect if id is in freeIds
-//     return entityId < entities.size();
-// }
+id_t World::_getOrCreateArchetype(const std::vector<id_t>& componentIds) {
 
-id_t World::createEntity(const std::vector<id_t>& componentIds) {
-    id_t eId = _nextEntity();
-    id_t aId = _getOrCreateArchetype(componentIds); // TODO return reference instead
-    Archetype& archetype = archetypes[aId];
-    // archetype.insertEntity();
-    return eId;
-}
+    // normalize component ids by sorting
+    std::vector<id_t> sortedIds = componentIds;
+    std::sort(sortedIds.begin(), sortedIds.end());
 
-// void World::removeEntity(id_t entityId) {
-//     ASSERT(entityId < eNextId, "EntityId " << entityId << " does not exist.");
-//     // TODO: archetype and chunk stuff here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//     _freeEntity(entityId);
-// }
-
-// void World::insertEntityComponent(id_t entityId, id_t componentId) {
-//     archetypeMgr.moveEntityRight(entityId, componentId)
-// }
-
-// void World::removeEntityComponent(id_t entityId, id_t componentId) {
-//     archetypeMgr.moveEntityLeft(entityId, componentId)
-// }
-
-id_t World::_nextEntity() {
-    id_t id = INVALID_ID;
-
-    if (!freeEntityIds.empty()) {
-        id = freeEntityIds.back();
-        freeEntityIds.pop_back();
-        entities[id].setId(id);
-        return id;
+    // build archetype mask
+    mask_t aMask = 0;
+    for (id_t cId : sortedIds) {
+        aMask |= (mask_t(1) << cId);
     }
 
-    id = nextEntityId++;
-    entities.emplace_back();
-    entities.back().setId(id);
-    return id;
-}
+    // if archetype already exists then return it
+    auto it = archetypeMaskToId.find(aMask);
+    if (it != archetypeMaskToId.end()) {
+        return it->second;
+    }
 
-void World::_freeEntity(id_t id) {
-    ASSERT(id < nextEntityId, "EntityId " << id << " does not exist.");
-    entities[id].invalidate();
-    freeEntityIds.push_back(id);
+    // otherwise allocate a new archetype
+    id_t aId = nextArchetypeId++;
+    std::vector<Component> archetypeComponents;
+    for (id_t cId : sortedIds) {
+        archetypeComponents.push_back(components[cId]);
+    }
+    archetypeMaskToId.insert({aMask, aId});
+    archetypes.emplace_back(aId, aMask, archetypeComponents);
+
+    return aId;
 }
 
 // =============================================================================
 // Component Functions
 // =============================================================================
+
+template <typename C>
+id_t World::registerComponent() {
+    id_t id = getComponentId<C>();
+    ASSERT(componentCount < Component::CAPACITY, "Component registry full.");
+    ASSERT(id < Component::CAPACITY, "Component id must be between 0 and 63");
+    ASSERT(!hasComponent(id), "Component \"" << typeid(C).name() << "\" already registered.");
+    static_assert(std::is_base_of<IComponentData, C>::value, "Component must inherit from IComponentData base.");
+
+    components[id].id   = id,
+    components[id].size = sizeof(C);
+    components[id].mask = mask_t(1) << id;
+    componentCount++;
+
+    return id;
+}
+
+template <typename C>
+id_t World::registerTag() {
+    id_t id = getComponentId<C>();
+    ASSERT(componentCount < Component::CAPACITY, "Component registry full.");
+    ASSERT(id < Component::CAPACITY, "Component id must be between 0 and 63");
+    ASSERT(!hasComponent(id), "Component \"" << typeid(C).name() << "\" already registered.");
+    static_assert(std::is_base_of<IComponentData, C>::value, "Component must inherit from IComponentData base.");
+
+    components[id].id   = id,
+    components[id].size = 0;
+    components[id].mask = mask_t(1) << id;
+    componentCount++;
+
+    return id;
+}
 
 template <typename C>
 bool World::hasComponent() const {
@@ -165,58 +184,65 @@ bool World::isTag(id_t id) const {
 }
 
 template <typename C>
-id_t World::registerComponent() {
-    id_t id = getComponentId<C>();
-    static_assert(std::is_base_of<IComponentData, C>::value, "Component must inherit from IComponentData base.");
-    ASSERT(componentCount < Component::CAPACITY, "Component registry full.");
-    ASSERT(!hasComponent(id), "Component \"" << typeid(C).name() << "\" already registered.");
-    components[id].set(id, sizeof(C));
-    componentCount++;
-    return id;
+const Component& World::getComponent() const {
+    return getComponent(getComponentId<C>());
 }
 
-template <typename C>
-id_t World::registerTag() {
-    id_t id = getComponentId<C>();
-    static_assert(std::is_base_of<IComponentData, C>::value, "Component must inherit from IComponentData base.");
-    ASSERT(componentCount < Component::CAPACITY, "Component registry full.");
-    ASSERT(!hasComponent(id), "Component \"" << typeid(C).name() << "\" already registered.");
-    components[id].set(id, 0);
-    componentCount++;
-    return id;
+const Component& World::getComponent(id_t id) const {
+    ASSERT(hasComponent(id), "Compnent " << id << " does not exist.");
+    return components[id];
 }
 
 // =============================================================================
-// Archetype Functions
+// Entity Functions
 // =============================================================================
 
-id_t World::_getOrCreateArchetype(const std::vector<id_t>& componentIds) {
+id_t World::createEntity(const std::vector<id_t>& componentIds) {
+    id_t eId = _nextEntity();
+    id_t aId = _getOrCreateArchetype(componentIds);
+    archetypes[aId].insertEntity(entities[eId]);
+    return eId;
+}
 
-    // normalize component ids by sorting
-    std::vector<id_t> sortedIds = componentIds;
-    std::sort(sortedIds.begin(), sortedIds.end());
+// void World::removeEntity(id_t entityId) {
+//     ASSERT(entityId < eNextId, "EntityId " << entityId << " does not exist.");
+//     // TODO: archetype and chunk stuff here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//     _freeEntity(entityId);
+// }
 
-    // build archetype mask
-    mask_t mask = 0;
-    for (id_t cId : sortedIds) {
-        mask |= (mask_t(1) << cId);
+// void World::insertEntityComponent(id_t entityId, id_t componentId) {
+//     archetypeMgr.moveEntityRight(entityId, componentId)
+// }
+
+// void World::removeEntityComponent(id_t entityId, id_t componentId) {
+//     archetypeMgr.moveEntityLeft(entityId, componentId)
+// }
+
+// bool World::hasEntity(id_t entityId) const {
+//     // TODO: need to detect if id is in freeIds
+//     return entityId < entities.size();
+// }
+
+id_t World::_nextEntity() {
+    id_t id = INVALID_ID;
+
+    if (!freeEntityIds.empty()) {
+        id = freeEntityIds.back();
+        freeEntityIds.pop_back();
+        entities[id].id = id;
+        return id;
     }
 
-    // if archetype already exists then return it
-    auto it = archetypeMaskToId.find(mask);
-    if (it != archetypeMaskToId.end()) {
-        return it->second;
-    }
-
-    // otherwise allocate a new archetype
-    id_t id = nextArchetypeId++;
-    std::vector<Component*> componentPtrs; 
-    for (id_t cId : sortedIds) {
-        componentPtrs.push_back(&components[cId]);
-    }
-    archetypes.emplace_back(id, mask, componentPtrs);
-
+    id = nextEntityId++;
+    entities.emplace_back();
+    entities.back().id = id;
     return id;
+}
+
+void World::_freeEntity(id_t id) {
+    ASSERT(id < nextEntityId, "EntityId " << id << " does not exist.");
+    entities[id].invalidate();
+    freeEntityIds.push_back(id);
 }
 
 // =============================================================================
@@ -233,20 +259,18 @@ void World::print() {
 void World::printArchetypes() {
     std::cout << "archetypes:" << std::endl;
     for (const Archetype& a : archetypes) {
-        std::cout << "  - id: "           << a.getId()            << std::endl;
-        std::cout << "    mask: "         << a.getMask()          << std::endl;
-        std::cout << "    chunkOpenIdx: " << a.getChunkOpenIdx()  << std::endl;
-        std::cout << "    capacity: "     << a.getCapacity()      << std::endl;
-        std::cout << "    chunkCount: "   << a.getChunkCount()    << std::endl;
-        std::cout << "    components: "                           << std::endl;
-        std::cout << "    - id: "         << INVALID_ID           << std::endl;
-        std::cout << "      size: "       << sizeof(id_t)         << std::endl;
-        std::cout << "      offset: "     << 0                    << std::endl;
-        for (Component* c : a.getComponents()) {
-            id_t id = c->getId();
-            std::cout << "    - id: "     << id                   << std::endl;
-            std::cout << "      size: "   << c->getSize()         << std::endl;
-            std::cout << "      offset: " << a.getArrayOffset(id) << std::endl;
+        std::cout << "  - id: "           << a.getId()              << std::endl;
+        std::cout << "    mask: "         << a.getMask()            << std::endl;
+        std::cout << "    capacity: "     << a.getCapacity()        << std::endl;
+        std::cout << "    chunkCount: "   << a.getChunkCount()      << std::endl;
+        std::cout << "    components: "                             << std::endl;
+        std::cout << "    - id: "         << INVALID_ID             << std::endl;
+        std::cout << "      size: "       << sizeof(id_t)           << std::endl;
+        std::cout << "      offset: "     << 0                      << std::endl;
+        for (const Component& c : a.getComponents()) {
+            std::cout << "    - id: "     << c.id                   << std::endl;
+            std::cout << "      size: "   << c.size                 << std::endl;
+            std::cout << "      offset: " << a.getArrayOffset(c.id) << std::endl;
         }
     }
 }
@@ -255,18 +279,17 @@ void World::printComponents() {
     std::cout << "components:" << std::endl;
     for (id_t id = 0; id < componentCount; id++) {
         const Component& c = components[id];
-        std::cout << "  - id: "   << c.getId()   << std::endl;
-        std::cout << "    size: " << c.getSize() << std::endl;
+        std::cout << "  - id: "   << c.id   << std::endl;
+        std::cout << "    size: " << c.size << std::endl;
     }
 }
 
 void World::printEntities() {
     std::cout << "entities:" << std::endl;
     for (const Entity& e : entities) {
-        std::cout << "  - id: "          << e.getId()        << std::endl;
-        // std::cout << "  - archetypeId: " << e.archetypeId()  << std::endl;
-        std::cout << "  - chunkIdx: "    << e.getChunkIdx()  << std::endl;
-        std::cout << "  - entityIdx: "   << e.getEntityIdx() << std::endl;
+        std::cout << "  - id: "    << e.id    << std::endl;
+        std::cout << "  - chunk: " << e.chunk << std::endl;
+        std::cout << "  - index: " << e.index << std::endl;
     }
 }
 

@@ -8,19 +8,17 @@ namespace ECS {
 
 class Entity {
 public:
+    // TODO: figure out proper interfaces
+    friend class Archetype;
+    friend class World;
+
     Entity();
     void invalidate();
-    void setId(id_t id_) { id = id_; }
-    id_t getId() const { return id; }
-    // id_t getArchetypeId() const { return archetype->getId(); }
-    id_t getChunkIdx() const { return chunkIdx; }
-    id_t getEntityIdx() const { return entityIdx; }
 
 private:
-    id_t id;              // unique entity identifier
-    Archetype* archetype; // pointer to parent archetype
-    uint32_t chunkIdx;    // this is the entity's chunk index in the archetype
-    uint32_t entityIdx;   // this is the entity's index in the chunk
+    id_t id;        // unique entity identifier
+    Chunk* chunk;   // entity exists in this chunk
+    uint32_t index; // entity exists in this chunk index
 };
 
 Entity::Entity() {
@@ -29,9 +27,8 @@ Entity::Entity() {
 
 void Entity::invalidate() {
     id = INVALID_ID;
-    archetype = nullptr;
-    chunkIdx = 0;
-    entityIdx = 0;
+    chunk = nullptr;
+    index = 0;
 }
 
 } // namepsace ECS

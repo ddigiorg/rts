@@ -23,6 +23,9 @@ int main() {
     ecs.registerTag<Disabled>();
 
     ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
+    ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
+    ecs.createEntity({ECS::typeof(Position)});
+    ecs.createEntity({ECS::typeof(Position)});
 
     ecs.print();
 
