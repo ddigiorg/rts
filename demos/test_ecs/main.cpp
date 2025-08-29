@@ -24,7 +24,12 @@ int main() {
 
     ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
     ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
+    ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
     ecs.createEntity({ECS::typeof(Position)});
+    ecs.createEntity({ECS::typeof(Position)});
+
+    ecs.removeEntity(1);
+
     ecs.createEntity({ECS::typeof(Position)});
 
     ecs.print();

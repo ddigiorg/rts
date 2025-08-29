@@ -3,20 +3,28 @@
 #include "ecs/types.hpp"
 #include "utils/assert.hpp"
 
+#include <cstdint>
+#include <limits> // for std::numeric_limits
+
 namespace ECS {
 
-#define typeof(C) getComponentId<C>()
+#define typeof(C) getComponentID<C>()
+
+using ComponentID = uint8_t;
+
+constexpr const ComponentID COMPONENT_ID_NULL = std::numeric_limits<ComponentID>::max();
+constexpr const size_t COMPONENT_CAPACITY = sizeof(mask_t) * 8;
 
 struct IComponentData {};
 
-inline id_t getNextComponentId() {
-    static id_t counter = 0;
+inline ComponentID getNextComponentID() {
+    static ComponentID counter = 0;
     return counter++;
 }
 
 template <typename C>
-inline id_t getComponentId() {
-    static id_t id = getNextComponentId();
+inline ComponentID getComponentID() {
+    static ComponentID id = getNextComponentID();
     return id;
 }
 
@@ -28,18 +36,16 @@ public:
     Component();
 
     bool isTag() const { return size == 0; }
-    id_t getId() const { return id; }
+    ComponentID getID() const { return id; }
     size_t getSize() const { return size; }
-    size_t getMask() const { return mask; }
-
-    static constexpr size_t CAPACITY = sizeof(mask_t) * 8;
+    mask_t getMask() const { return mask; }
 
 private:
-    id_t   id;   // unique component identifier
-    size_t size; // size in bytes of a single component element
-    mask_t mask; // bitmask with a single set bit at "id" (e.g. 1 << id)
+    ComponentID id; // unique component identifier
+    uint16_t size;  // size in bytes of a single component element
+    mask_t mask;    // bitmask with a single set bit at "id" (e.g. 1 << id)
 };
 
-Component::Component() : id(INVALID_ID), size(0) {}
+Component::Component() : id(COMPONENT_ID_NULL), size(0) {}
 
 } // namespace ECS

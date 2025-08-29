@@ -3,8 +3,15 @@
 #include "ecs/types.hpp"
 
 #include <cstdint>
+#include <limits> // for std::numeric_limits
 
 namespace ECS {
+
+using EntityID  = uint32_t;
+using EntityIdx = uint16_t;
+
+constexpr const EntityID  ENTITY_ID_NULL  = std::numeric_limits<EntityID >::max();
+constexpr const EntityIdx ENTITY_IDX_NULL = std::numeric_limits<EntityIdx>::max();
 
 class Entity {
 public:
@@ -16,9 +23,9 @@ public:
     void invalidate();
 
 private:
-    id_t id;        // unique entity identifier
-    Chunk* chunk;   // entity exists in this chunk
-    uint32_t index; // entity exists in this chunk index
+    EntityID id;     // unique entity identifier
+    Chunk* chunk;    // entity exists in this chunk
+    EntityIdx index; // entity exists in this chunk index
 };
 
 Entity::Entity() {
@@ -26,9 +33,9 @@ Entity::Entity() {
 }
 
 void Entity::invalidate() {
-    id = INVALID_ID;
+    id = ENTITY_ID_NULL;
     chunk = nullptr;
-    index = 0;
+    index = ENTITY_IDX_NULL;
 }
 
 } // namepsace ECS
