@@ -1,26 +1,36 @@
 #pragma once
 
 #include "ecs/types.hpp"
+#include "ecs/archetype.hpp"
+#include "ecs/component.hpp"
 #include "ecs/entity.hpp"
 #include "utils/assert.hpp"
 
 #include <array>
+#include <deque>
 #include <cstddef> // for std::byte
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 namespace ECS {
 
 // =============================================================================
 // Chunk
 //
-// A Chunk represents a contiguous block of memory for storing entity component 
-// data.  It is designed for efficient memory access and L1 cache locality.
+// A contiguous block of memory storing component data for multiple entities. It
+// is designed for efficient memory access and L1 cache locality.
+//
+// { 00, 00, 00, ..,   Header: 256 bytes
+//   e0, e1, e2, eM,   EntityIDs (Chunk buffer data starts at first byte of e0)
+//   00, 00, 00, ..,   Component 0
+//   00, 00, 00, ..,   Component 1
+//   00, 00, 00, ..  } Component N
+//
 // =============================================================================
 
 class Chunk {
 public:
-    friend class Archetype;
-    friend class World;
 
     Chunk(Archetype* archetype_, uint16_t capacity_);
     void init(Archetype* archetype_, uint16_t capacity_);
@@ -53,10 +63,6 @@ public:
     uint32_t getVersion()  const { return version;  }
     Archetype* getArchetype() const { return archetype; }
 
-    static constexpr uint16_t TOTAL_SIZE  = 16 * 1024; // 16 kilobytes
-    static constexpr uint16_t HEADER_SIZE = 128;
-    static constexpr uint16_t BUFFER_SIZE = TOTAL_SIZE - HEADER_SIZE;
-
 private:
     void*       _getArrayPtr(uint16_t offset=0);
     const void* _getArrayPtr(uint16_t offset=0) const;
@@ -67,30 +73,25 @@ private:
     T* _getComponentArray();
 
     // --- header ---
-    Chunk* prevActiveChunk; // linked list node to prev active chunk 
-    Chunk* nextActiveChunk; // linked list node to next active chunk 
-    uint16_t count;         // num entities currently in this chunk
-    uint16_t capacity;      // max entities for this chunk
-    uint32_t version;       // structural change version
-    Archetype* archetype;   // pointer to parent archetype
-    void* sharedComponentArray; // pointer to shared component data
+    Chunk* prevActiveChunk;     // 8B list node to prev active chunk
+    Chunk* nextActiveChunk;     // 8B list node to next active chunk
+    uint16_t count;             // 2B num entities in this chunk
+    uint16_t capacity;          // 2B max entities in this chunk
+    uint32_t version;           // 4B structural change version
+    Archetype* archetype;       // 8B pointer to parent archetype
+    void* sharedComponentArray; // 8B pointer to shared data
 
-    // TODO: this might be faster than archetype->getArrayOffset
-    // std::array<ComponentID, COMPONENT_CAPACITY> cidToIdx;
-    // std::array<void*, 16> componentPtrs;
+    // TODO: IMPLEMENT THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // lookup tables to convert cID to arrayPtr
+    // arrayPtrs[toIdx[cID]]
+    std::array<ComponentID, COMPONENT_CAPACITY> toIdx; // 64B
+    std::array<void*, 16> arrayPtrs;                   // 128B
 
-    // aligned packed entity component data
-    //      e0 e1 e2 ..   eIndex
-    //    +-------------+
-    // c0 | 00 00 00 .. | entityIDs
-    // c1 | 00 00 00 .. | component
-    // c2 | 00 00 00 .. | component
-    // .. | .. .. .. .. |
-    //    +-------------+
-    // ^ cIndex      ^ BUFFER_SIZE
+    // --- aligned packed entity component data ---
+    std::array<std::byte, CHUNK_BUFFER_SIZE> buffer; // 16KB - 256B
+
     // TODO: This wont work with new and delete on MSVC
     // alignas(64) std::array<std::byte, BUFFER_SIZE> buffer;
-    std::array<std::byte, BUFFER_SIZE> buffer;
 };
 
 Chunk::Chunk(Archetype* archetype_, uint16_t capacity_) {
@@ -174,5 +175,36 @@ T* Chunk::_getComponentArray() {
            "Component array exceeds chunk buffer.");
     return reinterpret_cast<T*>(_getArrayPtr(offset));
 }
+
+// =============================================================================
+// Chunk Manager
+// =============================================================================
+
+class ChunkManager {
+public:
+    // ChunkManager(std::vector<Entity>& entities_);
+    // void insertEntity();
+
+private:
+    // void _getOrCreateArchetype();
+    // void _allocateChunk();
+    // void _deactivateChunk(Chunk* chunk);
+
+    // ArchetypeManager& archetypeMgr;
+    // EntityManager& entityMgr;
+
+    //  chunk data
+    std::deque<Chunk> chunks;         // chunk storage
+    std::deque<ChunkList> chunkLists; // chunk list storage
+	std::vector<Chunk*> freeChunks;   // empty chunks recycled for later reuse
+
+    // TODO: put in component manager?
+    // chunk shared component data
+	// std::deque<void*> chunkSharedData; // indices are SharedComponentID
+    // std::vector<SharedComponentID> freeSharedIDs;
+
+    std::deque<std::unordered_map<ArchetypeMask, uint32_t>> maskToIndex;
+
+};
 
 } // namespace ECS

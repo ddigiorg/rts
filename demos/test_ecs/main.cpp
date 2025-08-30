@@ -1,18 +1,18 @@
 #include "ecs/world.hpp"
 
-struct Disabled : ECS::IComponentData {};
+struct Disabled {};
 
-struct Position : ECS::IComponentData {
+struct Position {
     float x, y;
 };
 
-struct Velocity : ECS::IComponentData {
+struct Velocity {
     float x, y;
 };
 
-struct Poop : ECS::IComponentData {
-    float x, y;
-};
+// struct Share : ECS::ISharedComponentData {
+//     float x, y;
+// };
 
 int main() {
     ECS::World ecs;
@@ -20,17 +20,10 @@ int main() {
     // register components
     ecs.registerComponent<Position>();
     ecs.registerComponent<Velocity>();
-    ecs.registerTag<Disabled>();
+    ecs.registerComponent<Disabled>();
+    // ecs.registerSharedComponent<Share>();
 
-    ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
-    ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
-    ecs.createEntity({ECS::typeof(Position), ECS::typeof(Velocity)});
-    ecs.createEntity({ECS::typeof(Position)});
-    ecs.createEntity({ECS::typeof(Position)});
-
-    ecs.removeEntity(1);
-
-    ecs.createEntity({ECS::typeof(Position)});
+    ecs.createEntity(Position{0.0f, 0.0f}, Velocity{1.0f, 1.0f});
 
     ecs.print();
 
