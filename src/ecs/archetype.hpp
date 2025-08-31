@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ecs/types.hpp"
-#include "ecs/chunk.hpp"
 #include "ecs/component.hpp"
 
 #include <algorithm> /// for std::sort
@@ -14,7 +13,7 @@
 namespace ECS {
 
 // =============================================================================
-// Archetype Class
+// Archetype
 // =============================================================================
 
 class Archetype {
@@ -54,6 +53,9 @@ Archetype::Archetype(
         ArchetypeMask mask_,
         const std::vector<Component>& components_)
 {
+    ASSERT(components.size() < CHUNK_COMPONENT_CAPACITY,
+           "Archetype cannot contain more than 16 components.");
+
     id = id_;
     mask = mask_;
     components = std::move(components_);
@@ -64,7 +66,8 @@ Archetype::Archetype(
     for (const Component& c : components) {
         entitySize += c.getSize();
     }
-    ASSERT(entitySize < CHUNK_BUFFER_SIZE, "Archetype component data size exceeds chunk buffer size.");
+    ASSERT(entitySize < CHUNK_BUFFER_SIZE,
+           "Archetype component data size exceeds chunk buffer size.");
     if (entitySize > 0) {
         capacity = CHUNK_BUFFER_SIZE / entitySize;
     }
@@ -82,7 +85,7 @@ bool Archetype::hasComponent(ComponentID cID) const {
 }
 
 // =============================================================================
-// Archetype Class
+// Archetype Manager
 // =============================================================================
 
 class ArchetypeManager {

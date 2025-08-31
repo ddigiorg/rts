@@ -6,12 +6,6 @@
 
 namespace ECS {
 
-using mask_t = uint64_t; // 64 bit mask where each bit represents a component
-
-// =============================================================================
-// Forward Declarations
-// =============================================================================
-
 class Archetype;
 class ArchetypeManager;
 class Chunk;
@@ -20,6 +14,8 @@ class Component;
 class ComponentManager;
 class Entity;
 class EntityManager;
+
+using mask_t = uint64_t; // 64 bit mask where each bit represents a component
 
 // =============================================================================
 // Archetype
@@ -37,6 +33,12 @@ constexpr const ArchetypeID ARCHETYPE_ID_NULL = std::numeric_limits<ArchetypeID>
 static constexpr uint16_t CHUNK_TOTAL_SIZE  = 16 * 1024; // 16 kilobytes
 static constexpr uint16_t CHUNK_HEADER_SIZE = 256;
 static constexpr uint16_t CHUNK_BUFFER_SIZE = CHUNK_TOTAL_SIZE - CHUNK_HEADER_SIZE;
+static constexpr size_t CHUNK_COMPONENT_CAPACITY = 16;
+
+// struct ChunkListKey {
+//     ArchetypeMask mask;
+//     SharedComponentID sharedID;
+// };
 
 struct ChunkList {
 	Chunk* headChunkActive;

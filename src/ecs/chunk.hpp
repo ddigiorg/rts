@@ -32,8 +32,8 @@ namespace ECS {
 class Chunk {
 public:
 
-    Chunk(Archetype* archetype_, uint16_t capacity_);
-    void init(Archetype* archetype_, uint16_t capacity_);
+    Chunk(Archetype* a);
+    void initialize(Archetype* a);
 
     template <typename T>
     bool hasComponent() const;
@@ -72,47 +72,60 @@ private:
     template <typename T>
     T* _getComponentArray();
 
-    // --- header ---
-    Chunk* prevActiveChunk;     // 8B list node to prev active chunk
-    Chunk* nextActiveChunk;     // 8B list node to next active chunk
+    // header
+    Chunk* prevChunkActive;     // 8B list node to prev active chunk
+    Chunk* nextChunkActive;     // 8B list node to next active chunk
+    Chunk* prevChunkOpen;       // 8B list node to prev open chunk
+    Chunk* nextChunkOpen;       // 8B list node to next open chunk
     uint16_t count;             // 2B num entities in this chunk
     uint16_t capacity;          // 2B max entities in this chunk
     uint32_t version;           // 4B structural change version
     Archetype* archetype;       // 8B pointer to parent archetype
     void* sharedComponentArray; // 8B pointer to shared data
 
-    // TODO: IMPLEMENT THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // lookup tables to convert cID to arrayPtr
-    // arrayPtrs[toIdx[cID]]
-    std::array<ComponentID, COMPONENT_CAPACITY> toIdx; // 64B
-    std::array<void*, 16> arrayPtrs;                   // 128B
+    // header component address lookup tables
+    std::array<ComponentID, COMPONENT_CAPACITY> toIdx;     // 64B
+    std::array<void*, CHUNK_COMPONENT_CAPACITY> arrayPtrs; // 128B
 
-    // --- aligned packed entity component data ---
-    std::array<std::byte, CHUNK_BUFFER_SIZE> buffer; // 16KB - 256B
-
-    // TODO: This wont work with new and delete on MSVC
-    // alignas(64) std::array<std::byte, BUFFER_SIZE> buffer;
+    // entity component data buffer
+    alignas(64) std::array<std::byte, CHUNK_BUFFER_SIZE> buffer; // 16KB - 256B
 };
 
-Chunk::Chunk(Archetype* archetype_, uint16_t capacity_) {
-    init(archetype_, capacity_);
+Chunk::Chunk(Archetype* a) {
+    initialize(a);
 }
 
-void Chunk::init(Archetype* archetype_, uint16_t capacity_) {
-    prevActiveChunk = nullptr;
-    nextActiveChunk = nullptr;
+void Chunk::initialize(Archetype* a) {
+    archetype = a;
+    prevChunkActive = nullptr;
+    nextChunkActive = nullptr;
+    prevChunkOpen   = nullptr;
+    nextChunkOpen   = nullptr;
     count = 0;
-    capacity = capacity_;
+    capacity = archetype->getCapacity();
     version = 0;
-    archetype = archetype_;
     sharedComponentArray = nullptr;
+
+    // initialize component address lookup tables
+    toIdx.fill(COMPONENT_ID_NULL);
+    arrayPtrs.fill(nullptr);
+    const std::vector<Component> components = archetype->getComponents();
+    for (uint32_t i = 0; i < components.size(); i++) {
+        const Component& c = components[i];
+        toIdx[c.getID()] = i;
+        arrayPtrs[i] = _getArrayPtr(c.getOffset());
+    }
+
+    // clear entity component data buffer
     buffer.fill(std::byte(0));
 }
 
 template <typename T>
 bool Chunk::hasComponent() const {
-    ASSERT(archetype != nullptr, "Chunk has no archetype set.");
-    return archetype->hasComponent(getComponentID<T>());
+    ComponentID id = getComponentID<T>();
+    if (id < COMPONENT_CAPACITY)
+        return arrayptrs[toIdx[]] != nullptr;
+    return false;
 }
 
 const EntityID* Chunk::getEntityIDArray() const {
@@ -169,8 +182,9 @@ const void* Chunk::_getElementPtr(uint16_t offset, uint16_t stride) const {
 
 template <typename T>
 T* Chunk::_getComponentArray() {
-    ASSERT(archetype, "Chunk has no archetype set.");
-    size_t offset = archetype->getArrayOffset(getComponentID<T>());
+    ComponentID id = getComponentID<T>();
+    ASSERT(hasComponent(id), "ComponentID is not in Chunk.");
+    size_t offset = arrayptrs[toIdx[id]];
     ASSERT(offset + sizeof(T) * count <= BUFFER_SIZE,
            "Component array exceeds chunk buffer.");
     return reinterpret_cast<T*>(_getArrayPtr(offset));
@@ -182,29 +196,30 @@ T* Chunk::_getComponentArray() {
 
 class ChunkManager {
 public:
-    // ChunkManager(std::vector<Entity>& entities_);
-    // void insertEntity();
+    void insertEntity(Entity& entity, Archetype& archetype);
 
 private:
-    // void _getOrCreateArchetype();
-    // void _allocateChunk();
-    // void _deactivateChunk(Chunk* chunk);
+    ChunkList& _createList();
+    Chunk* _allocateChunk(ChunkList& list);
+    void _deactivateChunk(Chunk* chunk);
 
-    // ArchetypeManager& archetypeMgr;
-    // EntityManager& entityMgr;
+    // chunk data
+    std::deque<Chunk> chunks;       // chunk storage
+	std::vector<Chunk*> freeChunks; // empty chunks recycled for later reuse
 
-    //  chunk data
-    std::deque<Chunk> chunks;         // chunk storage
-    std::deque<ChunkList> chunkLists; // chunk list storage
-	std::vector<Chunk*> freeChunks;   // empty chunks recycled for later reuse
+    // list
+    std::unordered_map<ArchetypeMask, uint32_t> maskToListIdx;
+    std::deque<ChunkList> lists;    // chunk list storage
 
     // TODO: put in component manager?
     // chunk shared component data
 	// std::deque<void*> chunkSharedData; // indices are SharedComponentID
     // std::vector<SharedComponentID> freeSharedIDs;
-
-    std::deque<std::unordered_map<ArchetypeMask, uint32_t>> maskToIndex;
-
 };
+
+void ChunkManager::insertEntity(Entity& entity, Archetype& archetype) {
+    ArchetypeMask aMask = archetype.getMask();
+
+}
 
 } // namespace ECS
