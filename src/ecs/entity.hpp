@@ -15,21 +15,21 @@ class Entity {
 public:
     friend class EntityManager;
 
-    Entity() { invalidate(); }
-    void invalidate();
+    Entity() { reset(); }
+    void reset();
 
     EntityID getID() const { return id; }
 
 private:
-    EntityID id;     // unique entity identifier
-    Chunk* chunk;    // entity exists in this chunk
-    EntityIdx index; // entity exists in this chunk index
+    EntityID id;    // unique entity identifier
+    Chunk*   chunk; // entity exists in this chunk
+    ChunkIdx cIdx;  // entity exists in this chunk index
 };
 
-void Entity::invalidate() {
+void Entity::reset() {
     id    = ENTITY_ID_NULL;
     chunk = nullptr;
-    index = ENTITY_IDX_NULL;
+    cIdx  = CHUNK_IDX_NULL;
 }
 
 // =============================================================================
@@ -38,27 +38,20 @@ void Entity::invalidate() {
 
 class EntityManager {
 public:
-    EntityManager() : entities({}), freeIDs({}), nextID(0) {}
+    EntityManager() : entities({}), freeIDs({}) {}
 
-    Entity& allocateEntity();
+    Entity& newEntity();
     void freeEntity(EntityID id);
-
-    // queries
     bool hasEntity(EntityID id) const;
-
-    // getters
     Entity& getEntity(EntityID id);
-
-    // miscellaneous
     void print();
 
 private:
     std::vector<Entity> entities;
     std::vector<EntityID> freeIDs;
-    EntityID nextID;
 };
 
-Entity& EntityManager::allocateEntity() {
+Entity& EntityManager::newEntity() {
     EntityID id = ENTITY_ID_NULL;
 
     if (!freeIDs.empty()) {
@@ -68,7 +61,7 @@ Entity& EntityManager::allocateEntity() {
         return entities[id];
     }
 
-    id = nextID++;
+    id = static_cast<EntityID>(entities.size());
     entities.emplace_back();
     entities.back().id = id;
     return entities[id];
@@ -76,12 +69,12 @@ Entity& EntityManager::allocateEntity() {
 
 void EntityManager::freeEntity(EntityID id) {
     ASSERT(hasEntity(id), "EntityID " << id << " does not exist.");
-    entities[id].invalidate();
+    entities[id].reset();
     freeIDs.push_back(id);
 }
 
 bool EntityManager::hasEntity(EntityID id) const {
-    if (id < entities.size())
+    if (id < static_cast<EntityID>(entities.size()))
         return !(entities[id].id == ENTITY_ID_NULL);
     return false;
 }
@@ -97,7 +90,7 @@ void EntityManager::print() {
         if (e.id == ENTITY_ID_NULL) continue;
         std::cout << "  - id: "    << e.id    << std::endl;
         std::cout << "  - chunk: " << e.chunk << std::endl;
-        std::cout << "  - index: " << e.index << std::endl;
+        std::cout << "  - index: " << e.cIdx  << std::endl;
     }
 }
 

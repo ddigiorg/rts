@@ -30,9 +30,16 @@ constexpr const ArchetypeID ARCHETYPE_ID_NULL = std::numeric_limits<ArchetypeID>
 // Chunk
 // =============================================================================
 
-static constexpr uint16_t CHUNK_TOTAL_SIZE  = 16 * 1024; // 16 kilobytes
-static constexpr uint16_t CHUNK_HEADER_SIZE = 256;
-static constexpr uint16_t CHUNK_BUFFER_SIZE = CHUNK_TOTAL_SIZE - CHUNK_HEADER_SIZE;
+using GroupID  = uint32_t;
+using ChunkID  = uint32_t;
+using ChunkIdx = uint16_t;
+
+constexpr const ChunkID  CHUNK_ID_NULL  = std::numeric_limits<ChunkID >::max();
+constexpr const ChunkIdx CHUNK_IDX_NULL = std::numeric_limits<ChunkIdx>::max();
+
+static constexpr ChunkIdx CHUNK_TOTAL_SIZE  = 16 * 1024; // 16 kilobytes
+static constexpr ChunkIdx CHUNK_HEADER_SIZE = 256;
+static constexpr ChunkIdx CHUNK_BUFFER_SIZE = CHUNK_TOTAL_SIZE - CHUNK_HEADER_SIZE;
 static constexpr size_t CHUNK_COMPONENT_CAPACITY = 16;
 
 // struct ChunkListKey {
@@ -41,16 +48,16 @@ static constexpr size_t CHUNK_COMPONENT_CAPACITY = 16;
 // };
 
 struct ChunkList {
-	Chunk* headChunkActive;
+	Archetype* archetype;
+
+    Chunk* headChunkActive;
 	Chunk* tailChunkActive;
 	Chunk* headChunkOpen;
 	Chunk* tailChunkOpen;
-
-	Archetype* archetype;
 };
 
 // =============================================================================
-// Component Types
+// Component
 // =============================================================================
 
 #define typeof(C) getComponentID<C>()
@@ -93,9 +100,7 @@ inline ComponentID getComponentID() {
 // =============================================================================
 
 using EntityID  = uint32_t;
-using EntityIdx = uint16_t;
 
 constexpr const EntityID  ENTITY_ID_NULL  = std::numeric_limits<EntityID >::max();
-constexpr const EntityIdx ENTITY_IDX_NULL = std::numeric_limits<EntityIdx>::max();
 
 } // namespace ECS

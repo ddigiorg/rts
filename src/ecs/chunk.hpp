@@ -31,8 +31,10 @@ namespace ECS {
 
 class Chunk {
 public:
+    friend class ChunkManager;
 
-    Chunk(Archetype* a);
+    Chunk() { reset(); }
+    void reset();
     void initialize(Archetype* a);
 
     template <typename T>
@@ -73,15 +75,16 @@ private:
     T* _getComponentArray();
 
     // header
-    Chunk* prevChunkActive;     // 8B list node to prev active chunk
-    Chunk* nextChunkActive;     // 8B list node to next active chunk
-    Chunk* prevChunkOpen;       // 8B list node to prev open chunk
-    Chunk* nextChunkOpen;       // 8B list node to next open chunk
-    uint16_t count;             // 2B num entities in this chunk
-    uint16_t capacity;          // 2B max entities in this chunk
-    uint32_t version;           // 4B structural change version
-    Archetype* archetype;       // 8B pointer to parent archetype
-    void* sharedComponentArray; // 8B pointer to shared data
+    ChunkID id;             // 4B unique identifier
+    GroupID groupID;        // 4B unique group identifier
+    Chunk* prevChunkActive; // 8B list node to prev active chunk
+    Chunk* nextChunkActive; // 8B list node to next active chunk
+    Chunk* prevChunkOpen;   // 8B list node to prev open chunk
+    Chunk* nextChunkOpen;   // 8B list node to next open chunk
+    ChunkIdx count;         // 2B num entities in this chunk
+    ChunkIdx capacity;      // 2B max entities in this chunk
+    uint32_t version;       // 4B structural change version
+    Archetype* archetype;   // 8B pointer to parent archetype
 
     // header component address lookup tables
     std::array<ComponentID, COMPONENT_CAPACITY> toIdx;     // 64B
@@ -91,33 +94,32 @@ private:
     alignas(64) std::array<std::byte, CHUNK_BUFFER_SIZE> buffer; // 16KB - 256B
 };
 
-Chunk::Chunk(Archetype* a) {
-    initialize(a);
-}
-
-void Chunk::initialize(Archetype* a) {
-    archetype = a;
+void Chunk::reset() {
+    id = CHUNK_ID_NULL;
     prevChunkActive = nullptr;
     nextChunkActive = nullptr;
     prevChunkOpen   = nullptr;
     nextChunkOpen   = nullptr;
-    count = 0;
-    capacity = archetype->getCapacity();
-    version = 0;
-    sharedComponentArray = nullptr;
-
-    // initialize component address lookup tables
+    count    = 0;
+    capacity = 0;
+    version  = 0;
+    archetype  = nullptr;
     toIdx.fill(COMPONENT_ID_NULL);
     arrayPtrs.fill(nullptr);
+    buffer.fill(std::byte(0));
+}
+
+void Chunk::initialize(Archetype* a) {
+    archetype = a;
+    capacity = archetype->getCapacity();
+
+    // initialize component address lookup tables
     const std::vector<Component> components = archetype->getComponents();
     for (uint32_t i = 0; i < components.size(); i++) {
         const Component& c = components[i];
         toIdx[c.getID()] = i;
         arrayPtrs[i] = _getArrayPtr(c.getOffset());
     }
-
-    // clear entity component data buffer
-    buffer.fill(std::byte(0));
 }
 
 template <typename T>
@@ -132,7 +134,7 @@ const EntityID* Chunk::getEntityIDArray() const {
     return reinterpret_cast<const EntityID*>(_getArrayPtr());
 }
 
-const EntityID& Chunk::getEntityID(uint16_t index) const {
+const EntityID& Chunk::getEntityID(ChunkIdx index) const {
     ASSERT(index < count, "Index out of bounds.");
     return getEntityIDArray()[index];
 }
@@ -148,35 +150,35 @@ const T* Chunk::getComponentArrayData() const {
 }
 
 template <typename T>
-T& Chunk::getComponentData(uint16_t index) {
+T& Chunk::getComponentData(ChunkIdx index) {
     ASSERT(index < count, "Index out of bounds.");
     return _getComponentArray<T>()[index];
 }
 
 template <typename T>
-const T& Chunk::getComponentData(uint16_t index) const {
+const T& Chunk::getComponentData(ChunkIdx index) const {
     ASSERT(index < count, "Index out of bounds.");
     return _getComponentArray<T>()[index];
 }
 
 template <typename T>
-void Chunk::setComponentData(uint16_t index, const T& value) {
+void Chunk::setComponentData(ChunkIdx index, const T& value) {
     getElement<T>(index) = value;
 }
 
-void* Chunk::_getArrayPtr(uint16_t offset) {
+void* Chunk::_getArrayPtr(ChunkIdx offset) {
     return static_cast<void*>(buffer.data() + offset);
 }
 
-const void* Chunk::_getArrayPtr(uint16_t offset) const {
+const void* Chunk::_getArrayPtr(ChunkIdx offset) const {
     return static_cast<const void*>(buffer.data() + offset);
 }
 
-void* Chunk::_getElementPtr(uint16_t offset, uint16_t stride) {
+void* Chunk::_getElementPtr(ChunkIdx offset, ChunkIdx stride) {
     return static_cast<void*>(buffer.data() + offset + stride);
 }
 
-const void* Chunk::_getElementPtr(uint16_t offset, uint16_t stride) const {
+const void* Chunk::_getElementPtr(ChunkIdx offset, ChunkIdx stride) const {
     return static_cast<const void*>(buffer.data() + offset + stride);
 }
 
@@ -196,30 +198,58 @@ T* Chunk::_getComponentArray() {
 
 class ChunkManager {
 public:
-    void insertEntity(Entity& entity, Archetype& archetype);
+    Chunk& newChunk();
+    void freeChunk(ChunkID id);
+    bool hasChunk(ChunkID id) const;
+    Chunk& getChunk(ChunkID id);
+    void print();
 
 private:
-    ChunkList& _createList();
-    Chunk* _allocateChunk(ChunkList& list);
-    void _deactivateChunk(Chunk* chunk);
-
-    // chunk data
-    std::deque<Chunk> chunks;       // chunk storage
-	std::vector<Chunk*> freeChunks; // empty chunks recycled for later reuse
-
-    // list
-    std::unordered_map<ArchetypeMask, uint32_t> maskToListIdx;
-    std::deque<ChunkList> lists;    // chunk list storage
-
-    // TODO: put in component manager?
-    // chunk shared component data
-	// std::deque<void*> chunkSharedData; // indices are SharedComponentID
-    // std::vector<SharedComponentID> freeSharedIDs;
+    std::deque<Chunk> chunks;     // chunk storage
+	std::vector<ChunkID> freeIDs; // empty chunks recycled for later reuse
 };
 
-void ChunkManager::insertEntity(Entity& entity, Archetype& archetype) {
-    ArchetypeMask aMask = archetype.getMask();
+Chunk& ChunkManager::newChunk() {
+    ChunkID id = CHUNK_ID_NULL;
 
+    if (!freeIDs.empty()) {
+        id = freeIDs.back();
+        freeIDs.pop_back();
+        chunks[id].id = id;
+        return chunks[id];
+    }
+
+    id = static_cast<ChunkID>(chunks.size());
+    chunks.emplace_back();
+    chunks.back().id = id;
+    return chunks[id];
+}
+
+void ChunkManager::freeChunk(ChunkID id) {
+    ASSERT(hasChunk(id), "ChunkID " << id << " does not exist.");
+    chunks[id].reset();
+    freeIDs.push_back(id);
+}
+
+bool ChunkManager::hasChunk(ChunkID id) const {
+    if (id < static_cast<ChunkID>(chunks.size()))
+        return !(chunks[id].id == CHUNK_ID_NULL);
+    return false;
+}
+
+Chunk& ChunkManager::getChunk(ChunkID id) {
+    ASSERT(hasChunk(id), "ChunkID " << id << " does not exist.");
+    return chunks[id];
+}
+
+void ChunkManager::print() {
+    std::cout << "chunks:" << std::endl;
+    for (const Chunk& c : chunks) {
+        if (c.id == CHUNK_ID_NULL) continue;
+        std::cout << "  - id: "       << c.id       << std::endl;
+        std::cout << "    count: "    << c.count    << std::endl;
+        std::cout << "    capacity: " << c.capacity << std::endl;
+    }
 }
 
 } // namespace ECS

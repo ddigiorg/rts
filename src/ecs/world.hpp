@@ -2,6 +2,7 @@
 
 #include "ecs/types.hpp"
 #include "ecs/archetype.hpp"
+#include "ecs/chunk.hpp"
 #include "ecs/component.hpp"
 #include "ecs/entity.hpp"
 #include "utils/assert.hpp"
@@ -25,7 +26,10 @@ public:
 
     // entity
     template<typename... Components>
-    EntityID createEntity(Components&&... components);
+    EntityID createEntity(Components&&... cData);
+    template<typename... Components>
+    EntityID createEntityInGroup(GroupID gID, Components&&... cData);
+
     // void removeEntity(EntityID id);
     // template <typename C>
     // void insertEntityComponent();
@@ -44,12 +48,15 @@ public:
 
 private:
     ArchetypeManager archetypeMgr;
-    // ChunkManager chunkMgr;
+    ChunkManager chunkMgr;
     ComponentManager componentMgr;
     EntityManager entityMgr;
     // EventManager eventMgr;
     // QueryManager queryMgr;
     // SystemManager systemMgr;
+
+    // chunk lists by group
+    std::deque<std::unordered_map<ArchetypeMask, ChunkList>> lists;
 };
 
 // =============================================================================
@@ -84,10 +91,17 @@ bool World::isTag(ComponentID cID) const {
 // =============================================================================
 
 template<typename... Components>
-EntityID World::createEntity(Components&&... components) {
-    Entity& e = entityMgr.allocateEntity();
+EntityID World::createEntity(Components&&... cData) {
+    return createEntityInGroup(0, std::forward<Components>(cData)...);
+}
+
+template<typename... Components>
+EntityID World::createEntityInGroup(GroupID gID, Components&&... cData) {
+    Entity& e = entityMgr.newEntity();
     Archetype& a = archetypeMgr.getOrCreateArchetype<Components...>();
-    // chunkMgr.insertEntity(e, a, std::forward<Components>(components)...);
+
+    // TODO:
+
     return e.getID();
 }
 
@@ -97,7 +111,7 @@ EntityID World::createEntity(Components&&... components) {
 
 void World::print() {
     archetypeMgr.print();
-    // printChunks();
+    chunkMgr.print();
     componentMgr.print();
     entityMgr.print();
 }
