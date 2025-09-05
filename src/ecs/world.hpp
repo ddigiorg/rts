@@ -2,9 +2,13 @@
 
 #include "ecs/types.hpp"
 #include "ecs/archetype.hpp"
+#include "ecs/archetype_manager.hpp"
 #include "ecs/chunk.hpp"
+#include "ecs/chunk_manager.hpp"
 #include "ecs/component.hpp"
+#include "ecs/component_manager.hpp"
 #include "ecs/entity.hpp"
+#include "ecs/entity_manager.hpp"
 #include "utils/assert.hpp"
 
 namespace ECS {
@@ -26,9 +30,9 @@ public:
 
     // entity
     template<typename... Components>
-    EntityID createEntity(Components&&... cData);
+    EntityID createEntity(Components&&... data);
     template<typename... Components>
-    EntityID createEntityInGroup(GroupID gID, Components&&... cData);
+    EntityID createEntityInGroup(GroupID gID, Components&&... data);
 
     // void removeEntity(EntityID id);
     // template <typename C>
@@ -54,9 +58,6 @@ private:
     // EventManager eventMgr;
     // QueryManager queryMgr;
     // SystemManager systemMgr;
-
-    // chunk lists by group
-    std::deque<std::unordered_map<ArchetypeMask, ChunkList>> lists;
 };
 
 // =============================================================================
@@ -91,18 +92,18 @@ bool World::isTag(ComponentID cID) const {
 // =============================================================================
 
 template<typename... Components>
-EntityID World::createEntity(Components&&... cData) {
-    return createEntityInGroup(0, std::forward<Components>(cData)...);
+EntityID World::createEntity(Components&&... data) {
+    return createEntityInGroup(0, std::forward<Components>(data)...);
 }
 
 template<typename... Components>
-EntityID World::createEntityInGroup(GroupID gID, Components&&... cData) {
-    Entity& e = entityMgr.newEntity();
-    Archetype& a = archetypeMgr.getOrCreateArchetype<Components...>();
-
-    // TODO:
-
-    return e.getID();
+EntityID World::createEntityInGroup(GroupID group, Components&&... data) {
+    // TODO: validate componentes are registered
+    // (void)std::initializer_list<int>{(registerComponent<Components>(), 0)...};
+    Entity& entity = entityMgr.newEntity();
+    Archetype& archetype = archetypeMgr.getOrCreateArchetype<Components...>();
+    chunkMgr.insertEntity(entity, archetype, group, std::forward<Components>(data)...);
+    return entity.getID();
 }
 
 // =============================================================================

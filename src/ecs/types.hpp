@@ -42,25 +42,11 @@ static constexpr ChunkIdx CHUNK_HEADER_SIZE = 256;
 static constexpr ChunkIdx CHUNK_BUFFER_SIZE = CHUNK_TOTAL_SIZE - CHUNK_HEADER_SIZE;
 static constexpr size_t CHUNK_COMPONENT_CAPACITY = 16;
 
-// struct ChunkListKey {
-//     ArchetypeMask mask;
-//     SharedComponentID sharedID;
-// };
-
-struct ChunkList {
-	Archetype* archetype;
-
-    Chunk* headChunkActive;
-	Chunk* tailChunkActive;
-	Chunk* headChunkOpen;
-	Chunk* tailChunkOpen;
-};
-
 // =============================================================================
 // Component
 // =============================================================================
 
-#define typeof(C) getComponentID<C>()
+// #define typeof(C) getComponentID<C>()
 
 using ComponentID   = uint8_t;
 using ComponentMask = mask_t; // only a single bit active
@@ -73,16 +59,6 @@ constexpr const size_t COMPONENT_CAPACITY = sizeof(ComponentMask) * 8;
 constexpr const ComponentID   COMPONENT_ID_NULL   = std::numeric_limits<ComponentID  >::max();
 constexpr const ComponentMask COMPONENT_MASK_NULL = 0;
 constexpr const ComponentSize COMPONENT_SIZE_NULL = std::numeric_limits<ComponentSize>::max();
-
-template <typename T>
-constexpr bool IsComponentType =
-    std::is_trivially_constructible_v<T> &&
-    std::is_trivially_destructible_v<T> &&
-    std::is_trivially_copyable_v<T> &&
-    std::is_standard_layout_v<T>;
-
-template <typename T>
-constexpr bool IsTagType = std::is_empty_v<T>;
 
 inline ComponentID getNextComponentID() {
     static ComponentID counter = 0;

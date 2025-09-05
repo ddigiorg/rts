@@ -7,10 +7,9 @@
 #include "utils/assert.hpp"
 
 #include <array>
-#include <deque>
 #include <cstddef> // for std::byte
 #include <cstdint>
-#include <unordered_map>
+#include <limits> // for std::numeric_limits
 #include <vector>
 
 namespace ECS {
@@ -31,8 +30,6 @@ namespace ECS {
 
 class Chunk {
 public:
-    friend class ChunkManager;
-
     Chunk() { reset(); }
     void reset();
     void initialize(Archetype* a);
@@ -45,7 +42,7 @@ public:
 
     // component entityID access
     const EntityID* getEntityIDArray() const;
-    const EntityID& getEntityID(uint16_t index) const;
+    const EntityID& getEntityID(ChunkIdx index) const;
 
     // component data access
     template <typename T>
@@ -53,23 +50,27 @@ public:
     template <typename T>
     const T* getComponentArrayData() const;
     template <typename T>
-    T&       getComponentData(uint16_t index);
+    T&       getComponentData(ChunkIdx index);
     template <typename T>
-    const T& getComponentData(uint16_t index) const;
+    const T& getComponentData(ChunkIdx index) const;
     template <typename T>
-    void     setComponentData(uint16_t index, const T& value);
+    void     setComponentData(ChunkIdx index, const T& value);
 
     // getters
-    uint16_t getCount()    const { return count;    }
-    uint16_t getCapacity() const { return capacity; }
-    uint32_t getVersion()  const { return version;  }
+    ChunkID    getID()        const { return id;        }
+    GroupID    getGroupID()   const { return groupID;   }
+    ChunkIdx   getCount()     const { return count;     }
+    ChunkIdx   getCapacity()  const { return capacity;  }
+    uint32_t   getVersion()   const { return version;   }
     Archetype* getArchetype() const { return archetype; }
 
 private:
-    void*       _getArrayPtr(uint16_t offset=0);
-    const void* _getArrayPtr(uint16_t offset=0) const;
-    void*       _getElementPtr(uint16_t offset=0, uint16_t stride=0);
-    const void* _getElementPtr(uint16_t offset=0, uint16_t stride=0) const;
+    friend class ChunkManager;
+
+    void*       _getArrayPtr(ChunkIdx offset=0);
+    const void* _getArrayPtr(ChunkIdx offset=0) const;
+    void*       _getElementPtr(ChunkIdx offset=0, ChunkIdx stride=0);
+    const void* _getElementPtr(ChunkIdx offset=0, ChunkIdx stride=0) const;
 
     template <typename T>
     T* _getComponentArray();
@@ -115,7 +116,7 @@ void Chunk::initialize(Archetype* a) {
 
     // initialize component address lookup tables
     const std::vector<Component> components = archetype->getComponents();
-    for (uint32_t i = 0; i < components.size(); i++) {
+    for (size_t i = 0; i < components.size(); i++) {
         const Component& c = components[i];
         toIdx[c.getID()] = i;
         arrayPtrs[i] = _getArrayPtr(c.getOffset());
@@ -190,66 +191,6 @@ T* Chunk::_getComponentArray() {
     ASSERT(offset + sizeof(T) * count <= BUFFER_SIZE,
            "Component array exceeds chunk buffer.");
     return reinterpret_cast<T*>(_getArrayPtr(offset));
-}
-
-// =============================================================================
-// Chunk Manager
-// =============================================================================
-
-class ChunkManager {
-public:
-    Chunk& newChunk();
-    void freeChunk(ChunkID id);
-    bool hasChunk(ChunkID id) const;
-    Chunk& getChunk(ChunkID id);
-    void print();
-
-private:
-    std::deque<Chunk> chunks;     // chunk storage
-	std::vector<ChunkID> freeIDs; // empty chunks recycled for later reuse
-};
-
-Chunk& ChunkManager::newChunk() {
-    ChunkID id = CHUNK_ID_NULL;
-
-    if (!freeIDs.empty()) {
-        id = freeIDs.back();
-        freeIDs.pop_back();
-        chunks[id].id = id;
-        return chunks[id];
-    }
-
-    id = static_cast<ChunkID>(chunks.size());
-    chunks.emplace_back();
-    chunks.back().id = id;
-    return chunks[id];
-}
-
-void ChunkManager::freeChunk(ChunkID id) {
-    ASSERT(hasChunk(id), "ChunkID " << id << " does not exist.");
-    chunks[id].reset();
-    freeIDs.push_back(id);
-}
-
-bool ChunkManager::hasChunk(ChunkID id) const {
-    if (id < static_cast<ChunkID>(chunks.size()))
-        return !(chunks[id].id == CHUNK_ID_NULL);
-    return false;
-}
-
-Chunk& ChunkManager::getChunk(ChunkID id) {
-    ASSERT(hasChunk(id), "ChunkID " << id << " does not exist.");
-    return chunks[id];
-}
-
-void ChunkManager::print() {
-    std::cout << "chunks:" << std::endl;
-    for (const Chunk& c : chunks) {
-        if (c.id == CHUNK_ID_NULL) continue;
-        std::cout << "  - id: "       << c.id       << std::endl;
-        std::cout << "    count: "    << c.count    << std::endl;
-        std::cout << "    capacity: " << c.capacity << std::endl;
-    }
 }
 
 } // namespace ECS
