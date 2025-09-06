@@ -10,6 +10,10 @@
 
 namespace ECS {
 
+// =============================================================================
+// ComponentManager Types
+// =============================================================================
+
 template <typename T>
 constexpr bool IsComponentType =
     std::is_trivially_constructible_v<T> &&
@@ -20,15 +24,14 @@ constexpr bool IsComponentType =
 template <typename T>
 constexpr bool IsTagType = std::is_empty_v<T>;
 
+// =============================================================================
+// ComponentManager
+// =============================================================================
+
 class ComponentManager {
 public:
     ComponentManager() : components({}), count{0} {}
 
-    // component registration
-    template <typename T>
-    Component& registerComponent();
-
-    // queries
     template <typename T>
     bool hasComponent() const;
     bool hasComponent(ComponentID id) const;
@@ -36,12 +39,13 @@ public:
     bool isTag() const;
     bool isTag(ComponentID id) const;
 
-    // getters
     template <typename T>
     Component getComponent();
     Component getComponent(ComponentID id);
 
-    // miscellaneous
+    template <typename T>
+    Component& registerComponent();
+
     void print();
 
 private:
@@ -49,24 +53,9 @@ private:
     ComponentID count;
 };
 
-template <typename T>
-Component& ComponentManager::registerComponent() {
-    static_assert(IsComponentType<T> || IsTagType<T>,
-        "Type T is not a valid component (must be POD-like or an empty tag).");
-
-    ComponentID id = getComponentID<T>();
-    ASSERT(count < COMPONENT_CAPACITY, "Component registry full.");
-    ASSERT(id < COMPONENT_CAPACITY, "Component id must be between 0 and 63");
-    ASSERT(!hasComponent(id), "Component already registered.");
-
-    Component& c = components[id];
-    c.id   = id;
-    c.mask = ComponentMask(1) << id;
-    c.size = IsTagType<T> ? 0 : sizeof(T);
-    count++;
-
-    return c;
-}
+// =============================================================================
+// ComponentManager Functions
+// =============================================================================
 
 template <typename T>
 bool ComponentManager::hasComponent() const {
@@ -94,6 +83,25 @@ Component ComponentManager::getComponent() {
 Component ComponentManager::getComponent(ComponentID id) {
     ASSERT(hasComponent(id), "Component " << id << " does not exist.");
     return components[id];
+}
+
+template <typename T>
+Component& ComponentManager::registerComponent() {
+    static_assert(IsComponentType<T> || IsTagType<T>,
+        "Type T is not a valid component (must be POD-like or an empty tag).");
+
+    ComponentID id = getComponentID<T>();
+    ASSERT(count < COMPONENT_CAPACITY, "Component registry full.");
+    ASSERT(id < COMPONENT_CAPACITY, "Component id must be between 0 and 63");
+    ASSERT(!hasComponent(id), "Component already registered.");
+
+    Component& c = components[id];
+    c.id   = id;
+    c.mask = ComponentMask(1) << id;
+    c.size = IsTagType<T> ? 0 : sizeof(T);
+    count++;
+
+    return c;
 }
 
 void ComponentManager::print() {

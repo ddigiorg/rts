@@ -9,60 +9,68 @@
 
 namespace ECS {
 
+// =============================================================================
+// Archetype
+// =============================================================================
+    
 class Archetype {
+    friend class ArchetypeManager;
+
 public:
     Archetype(
         ArchetypeID id_,
         ArchetypeMask mask_,
-        const std::vector<Component>& components_
-    );
+        const std::vector<Component>& components_);
 
-    // queries
     bool hasComponent(ComponentID cID) const;
 
-    // getters
     ArchetypeID getID() const { return id; }
     ArchetypeMask getMask() const { return mask; }
     ChunkIdx getCapacity() const { return capacity; }
-    size_t getComponentCount() const { return components.size(); }
     const std::vector<Component>& getComponents() const { return components; }
 
 private:
-    // archetype metadata
 	ArchetypeID id;     // unique archetype identifier
     ArchetypeMask mask; // bitmask where set bits represent components
-    ChunkIdx capacity;  // maximum number of entities in a chunk of this archetype
+    ChunkIdx capacity;  // maximum number of entities in chunk of this archetype
 
-    // chunk component metadata
     std::vector<Component> components;
 
-    // archetype neighbors
-    std::array<Archetype*, COMPONENT_CAPACITY> leftArchetypes;
-    std::array<Archetype*, COMPONENT_CAPACITY> rightArchetypes;
+    // neighbor graph nodes
+    std::array<Archetype*, COMPONENT_CAPACITY> removes;
+    std::array<Archetype*, COMPONENT_CAPACITY> inserts;
 };
+
+// =============================================================================
+// Archetype Functions
+// =============================================================================
 
 Archetype::Archetype(
         ArchetypeID id_,
         ArchetypeMask mask_,
-        const std::vector<Component>& components_)
-{
+        const std::vector<Component>& components_ ) {
+
     ASSERT(components.size() < CHUNK_COMPONENT_CAPACITY,
-           "Archetype cannot contain more than 16 components.");
+        "Archetype cannot contain more than 16 components.");
 
     id = id_;
     mask = mask_;
     components = std::move(components_);
     capacity = CHUNK_BUFFER_SIZE;
 
-    // calculate the size of all components for a single entity
-    ComponentSize entitySize = sizeof(EntityID); // NOTE: first component is always EntityID
+    // get size of all component data in a single entity of this archetype
+    // NOTE: first "component" is always EntityID
+    ChunkIdx eSize = static_cast<ChunkIdx>(sizeof(EntityID));
     for (const Component& c : components) {
-        entitySize += c.getSize();
+        eSize += c.getSize();
     }
-    ASSERT(entitySize < CHUNK_BUFFER_SIZE,
-           "Archetype component data size exceeds chunk buffer size.");
-    if (entitySize > 0) {
-        capacity = CHUNK_BUFFER_SIZE / entitySize;
+
+    ASSERT(eSize < CHUNK_BUFFER_SIZE,
+        "Archetype component data size exceeds chunk buffer size.");
+
+    // set archetype capacity (i.e. num entities in a chunk) based on data size
+    if (eSize > 0) {
+        capacity = CHUNK_BUFFER_SIZE / eSize;
     }
 
     // assign component information

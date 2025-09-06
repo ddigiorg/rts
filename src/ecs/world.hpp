@@ -13,12 +13,18 @@
 
 namespace ECS {
 
+// =============================================================================
+// World
+// =============================================================================
+
 class World {
 public:
-    World()
-        : archetypeMgr(componentMgr) {}
+    World();
 
-    // component
+    // chunk functions
+    Chunk& getChunk(ChunkID id);
+
+    // component functions
     template <typename C>
     ComponentID registerComponent();
     template <typename C>
@@ -28,7 +34,7 @@ public:
     bool isTag() const;
     bool isTag(ComponentID cID) const;
 
-    // entity
+    // entity functions
     template<typename... Components>
     EntityID createEntity(Components&&... data);
     template<typename... Components>
@@ -47,7 +53,7 @@ public:
 
     // QueryIterator query(Query q);
 
-    // miscellaneous
+    // miscellaneous functions
     void print();
 
 private:
@@ -61,7 +67,25 @@ private:
 };
 
 // =============================================================================
-// Component Functions
+// World Constructor
+// =============================================================================
+
+World::World()
+    : archetypeMgr(componentMgr),
+      chunkMgr(archetypeMgr, entityMgr),
+      componentMgr({}),
+      entityMgr({}) {}
+
+// =============================================================================
+// World Chunk Functions
+// =============================================================================
+
+Chunk& World::getChunk(ChunkID id) {
+    return chunkMgr.getChunk(id);
+}
+
+// =============================================================================
+// World Component Functions
 // =============================================================================
 
 template <typename C>
@@ -88,7 +112,7 @@ bool World::isTag(ComponentID cID) const {
 }
 
 // =============================================================================
-// Entity Functions
+// World Entity Functions
 // =============================================================================
 
 template<typename... Components>
@@ -97,17 +121,17 @@ EntityID World::createEntity(Components&&... data) {
 }
 
 template<typename... Components>
-EntityID World::createEntityInGroup(GroupID group, Components&&... data) {
+EntityID World::createEntityInGroup(GroupID gID, Components&&... data) {
     // TODO: validate componentes are registered
     // (void)std::initializer_list<int>{(registerComponent<Components>(), 0)...};
-    Entity& entity = entityMgr.newEntity();
-    Archetype& archetype = archetypeMgr.getOrCreateArchetype<Components...>();
-    chunkMgr.insertEntity(entity, archetype, group, std::forward<Components>(data)...);
-    return entity.getID();
+    EntityID    eID = entityMgr.createEntity();
+    ArchetypeID aID = archetypeMgr.getOrCreateArchetype<Components...>();
+    chunkMgr.insertEntity(eID, aID, gID, std::forward<Components>(data)...);
+    return eID;
 }
 
 // =============================================================================
-// Print Functions
+// World Miscellaneous Functions
 // =============================================================================
 
 void World::print() {

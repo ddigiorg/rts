@@ -9,7 +9,6 @@
 #include <array>
 #include <cstddef> // for std::byte
 #include <cstdint>
-#include <limits> // for std::numeric_limits
 #include <vector>
 
 namespace ECS {
@@ -17,101 +16,122 @@ namespace ECS {
 // =============================================================================
 // Chunk
 //
-// A contiguous block of memory storing component data for multiple entities. It
-// is designed for efficient memory access and L1 cache locality.
+// A Chunk is a flat contiguous block of memory storing entity component data.
+// It is designed for efficient memory access and cache locality.
 //
-// { 00, 00, 00, ..,   Header: 256 bytes
-//   e0, e1, e2, eM,   EntityIDs (Chunk buffer data starts at first byte of e0)
-//   00, 00, 00, ..,   Component 0
-//   00, 00, 00, ..,   Component 1
-//   00, 00, 00, ..  } Component N
+// { h_0, h_1, ..., h_N,   header 256 bytes
+//   e_0, e_1, ..., e_X,   chunk.data<EntityIDs>()
+//   cA0, cA1, ..., cAX,   chunk.data<ComponentA>()
+//   cB0, cB1, ..., cBX,   chunk.data<ComponentB>()
+//   ..., ..., ..., ...,   ...
+//   cY0, cY1, ..., cYX, } chunk.data<ComponentY>
 //
 // =============================================================================
 
 class Chunk {
-public:
-    Chunk() { reset(); }
-    void reset();
-    void initialize(Archetype* a);
-
-    template <typename T>
-    bool hasComponent() const;
-    bool isFull() const { return count >= capacity; }
-    bool isEmpty() const { return count == 0; }
-    void incrementVersion() { ++version; }
-
-    // component entityID access
-    const EntityID* getEntityIDArray() const;
-    const EntityID& getEntityID(ChunkIdx index) const;
-
-    // component data access
-    template <typename T>
-    T*       getComponentArrayData();
-    template <typename T>
-    const T* getComponentArrayData() const;
-    template <typename T>
-    T&       getComponentData(ChunkIdx index);
-    template <typename T>
-    const T& getComponentData(ChunkIdx index) const;
-    template <typename T>
-    void     setComponentData(ChunkIdx index, const T& value);
-
-    // getters
-    ChunkID    getID()        const { return id;        }
-    GroupID    getGroupID()   const { return groupID;   }
-    ChunkIdx   getCount()     const { return count;     }
-    ChunkIdx   getCapacity()  const { return capacity;  }
-    uint32_t   getVersion()   const { return version;   }
-    Archetype* getArchetype() const { return archetype; }
-
-private:
     friend class ChunkManager;
 
-    void*       _getArrayPtr(ChunkIdx offset=0);
-    const void* _getArrayPtr(ChunkIdx offset=0) const;
-    void*       _getElementPtr(ChunkIdx offset=0, ChunkIdx stride=0);
-    const void* _getElementPtr(ChunkIdx offset=0, ChunkIdx stride=0) const;
+public:
+    Chunk() { _clear(); }
 
+    // queries
     template <typename T>
-    T* _getComponentArray();
+    bool hasComponent() const;
+    bool isFull()  const { return count >= capacity; }
+    bool isEmpty() const { return count == 0; }
 
-    // header
-    ChunkID id;             // 4B unique identifier
-    GroupID groupID;        // 4B unique group identifier
-    Chunk* prevChunkActive; // 8B list node to prev active chunk
-    Chunk* nextChunkActive; // 8B list node to next active chunk
-    Chunk* prevChunkOpen;   // 8B list node to prev open chunk
-    Chunk* nextChunkOpen;   // 8B list node to next open chunk
-    ChunkIdx count;         // 2B num entities in this chunk
-    ChunkIdx capacity;      // 2B max entities in this chunk
-    uint32_t version;       // 4B structural change version
-    Archetype* archetype;   // 8B pointer to parent archetype
+    // getters
+    ChunkID  getID()       const { return id;       }
+    GroupID  getGroupID()  const { return groupID;  }
+    ChunkIdx getCount()    const { return count;    }
+    ChunkIdx getCapacity() const { return capacity; }
 
-    // header component address lookup tables
-    std::array<ComponentID, COMPONENT_CAPACITY> toIdx;     // 64B
-    std::array<void*, CHUNK_COMPONENT_CAPACITY> arrayPtrs; // 128B
+    // buffer access (NOTE: unsafe! can be indexed out of bounds...)
+    const EntityID* getEntityIDs() const;
+    template <typename T>
+    T*       data();
+    template <typename T>
+    const T* data() const;
+
+private:
+    void _clear();
+    void _initialize(ChunkID id, Archetype* a, GroupID g);
+    EntityID* _getEntityIDs();
+
+    // header (metadata)
+    ChunkID id;           // 4B unique identifier
+    GroupID groupID;      // 4B unique group identifier
+    Chunk* prevChunk;     // 8B list node to prev chunk
+    Chunk* nextChunk;     // 8B list node to next chunk
+    Chunk* prevChunkOpen; // 8B list node to prev chunk with open entity slots
+    Chunk* nextChunkOpen; // 8B list node to next chunk with open entity slots
+    ChunkIdx count;       // 2B num entities in this chunk
+    ChunkIdx capacity;    // 2B max entities in this chunk
+    uint32_t version;     // 4B structural change version
+    Archetype* archetype; // 8B pointer to parent archetype
+
+    // header (component address lookup tables)
+    std::array<ComponentID, COMPONENT_CAPACITY> toIdx;   // 64B
+    std::array<void*, CHUNK_COMPONENT_CAPACITY> bufPtrs; // 128B
 
     // entity component data buffer
     alignas(64) std::array<std::byte, CHUNK_BUFFER_SIZE> buffer; // 16KB - 256B
 };
 
-void Chunk::reset() {
+// =============================================================================
+// Chunk Functions
+// =============================================================================
+
+template <typename T>
+bool Chunk::hasComponent() const {
+    ComponentID cID = getComponentID<T>();
+    if (cID < COMPONENT_CAPACITY)
+        return bufPtrs[toIdx[cID]] != nullptr;
+    return false;
+}
+
+EntityID* Chunk::_getEntityIDs() {
+    return reinterpret_cast<EntityID*>(buffer.data());
+}
+
+const EntityID* Chunk::getEntityIDs() const {
+    return reinterpret_cast<const EntityID*>(buffer.data());
+}
+
+template <typename T>
+T* Chunk::data() {
+    ASSERT(hasComponent<T>(), "Component is not in Chunk.");
+    ComponentID cID = getComponentID<T>();
+    return reinterpret_cast<T*>(bufPtrs[toIdx[cID]]);
+}
+
+template <typename T>
+const T* Chunk::data() const {
+    ASSERT(hasComponent<T>(), "Component is not in Chunk.");
+    ComponentID cID = getComponentID<T>();
+    return reinterpret_cast<const T*>(bufPtrs[toIdx[cID]]);
+}
+
+void Chunk::_clear() {
     id = CHUNK_ID_NULL;
-    prevChunkActive = nullptr;
-    nextChunkActive = nullptr;
-    prevChunkOpen   = nullptr;
-    nextChunkOpen   = nullptr;
+    groupID = GROUP_ID_NULL;
+    prevChunk = nullptr;
+    nextChunk = nullptr;
+    prevChunkOpen = nullptr;
+    nextChunkOpen = nullptr;
     count    = 0;
     capacity = 0;
     version  = 0;
     archetype  = nullptr;
     toIdx.fill(COMPONENT_ID_NULL);
-    arrayPtrs.fill(nullptr);
+    bufPtrs.fill(nullptr);
     buffer.fill(std::byte(0));
 }
 
-void Chunk::initialize(Archetype* a) {
+void Chunk::_initialize(ChunkID id, Archetype* a, GroupID g) {
+    this->id = id;
     archetype = a;
+    groupID = g;
     capacity = archetype->getCapacity();
 
     // initialize component address lookup tables
@@ -119,78 +139,10 @@ void Chunk::initialize(Archetype* a) {
     for (size_t i = 0; i < components.size(); i++) {
         const Component& c = components[i];
         toIdx[c.getID()] = i;
-        arrayPtrs[i] = _getArrayPtr(c.getOffset());
+        // TODO: need to check if archetype does this
+        // ASSERT(offset + sizeof(T) * count <= BUFFER_SIZE, "Component array exceeds chunk buffer.");
+        bufPtrs[i] = static_cast<void*>(buffer.data() + c.getOffset());
     }
-}
-
-template <typename T>
-bool Chunk::hasComponent() const {
-    ComponentID id = getComponentID<T>();
-    if (id < COMPONENT_CAPACITY)
-        return arrayptrs[toIdx[]] != nullptr;
-    return false;
-}
-
-const EntityID* Chunk::getEntityIDArray() const {
-    return reinterpret_cast<const EntityID*>(_getArrayPtr());
-}
-
-const EntityID& Chunk::getEntityID(ChunkIdx index) const {
-    ASSERT(index < count, "Index out of bounds.");
-    return getEntityIDArray()[index];
-}
-
-template <typename T>
-T* Chunk::getComponentArrayData() {
-    return _getComponentArray<T>();
-}
-
-template <typename T>
-const T* Chunk::getComponentArrayData() const {
-    return _getComponentArray<T>();
-}
-
-template <typename T>
-T& Chunk::getComponentData(ChunkIdx index) {
-    ASSERT(index < count, "Index out of bounds.");
-    return _getComponentArray<T>()[index];
-}
-
-template <typename T>
-const T& Chunk::getComponentData(ChunkIdx index) const {
-    ASSERT(index < count, "Index out of bounds.");
-    return _getComponentArray<T>()[index];
-}
-
-template <typename T>
-void Chunk::setComponentData(ChunkIdx index, const T& value) {
-    getElement<T>(index) = value;
-}
-
-void* Chunk::_getArrayPtr(ChunkIdx offset) {
-    return static_cast<void*>(buffer.data() + offset);
-}
-
-const void* Chunk::_getArrayPtr(ChunkIdx offset) const {
-    return static_cast<const void*>(buffer.data() + offset);
-}
-
-void* Chunk::_getElementPtr(ChunkIdx offset, ChunkIdx stride) {
-    return static_cast<void*>(buffer.data() + offset + stride);
-}
-
-const void* Chunk::_getElementPtr(ChunkIdx offset, ChunkIdx stride) const {
-    return static_cast<const void*>(buffer.data() + offset + stride);
-}
-
-template <typename T>
-T* Chunk::_getComponentArray() {
-    ComponentID id = getComponentID<T>();
-    ASSERT(hasComponent(id), "ComponentID is not in Chunk.");
-    size_t offset = arrayptrs[toIdx[id]];
-    ASSERT(offset + sizeof(T) * count <= BUFFER_SIZE,
-           "Component array exceeds chunk buffer.");
-    return reinterpret_cast<T*>(_getArrayPtr(offset));
 }
 
 } // namespace ECS

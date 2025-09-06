@@ -4,7 +4,14 @@
 
 namespace ECS {
 
+// =============================================================================
+// Entity
+// =============================================================================
+
 class Entity {
+    friend class EntityManager;
+    friend class ChunkManager;
+
 public:
     Entity() { nullify(); }
     void nullify();
@@ -14,16 +21,16 @@ public:
     ChunkIdx getChunkIdx() const { return chunkIdx; };
 
 private:
-    friend class EntityManager;
-    friend class ChunkManager;
-    friend class World;
-
     void _setLocation(ChunkID chunkID, ChunkIdx chunkIdx);
 
     EntityID id;       // unique entity identifier
     ChunkID  chunkID;  // entity exists in this chunk
     ChunkIdx chunkIdx; // entity exists in this chunk index
 };
+
+// =============================================================================
+// Entity Functions
+// =============================================================================
 
 void Entity::nullify() {
     id       = ENTITY_ID_NULL;

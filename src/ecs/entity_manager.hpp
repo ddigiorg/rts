@@ -8,14 +8,20 @@
 
 namespace ECS {
 
+// =============================================================================
+// EntityManager
+// =============================================================================
+
 class EntityManager {
 public:
     EntityManager() : entities({}), freeIDs({}) {}
 
-    Entity& newEntity();
-    void freeEntity(EntityID id);
     bool hasEntity(EntityID id) const;
     Entity& getEntity(EntityID id);
+
+    EntityID createEntity();
+    void freeEntity(EntityID id);
+
     void print();
 
 private:
@@ -23,27 +29,9 @@ private:
     std::vector<EntityID> freeIDs;
 };
 
-Entity& EntityManager::newEntity() {
-    EntityID id = ENTITY_ID_NULL;
-
-    if (!freeIDs.empty()) {
-        id = freeIDs.back();
-        freeIDs.pop_back();
-        entities[id].id = id;
-        return entities[id];
-    }
-
-    id = static_cast<EntityID>(entities.size());
-    entities.emplace_back();
-    entities.back().id = id;
-    return entities[id];
-}
-
-void EntityManager::freeEntity(EntityID id) {
-    ASSERT(hasEntity(id), "EntityID " << id << " does not exist.");
-    entities[id].nullify();
-    freeIDs.push_back(id);
-}
+// =============================================================================
+// EntityManager Functions
+// =============================================================================
 
 bool EntityManager::hasEntity(EntityID id) const {
     if (id < static_cast<EntityID>(entities.size()))
@@ -54,6 +42,28 @@ bool EntityManager::hasEntity(EntityID id) const {
 Entity& EntityManager::getEntity(EntityID id) {
     ASSERT(hasEntity(id), "EntityID " << id << " does not exist.");
     return entities[id];
+}
+
+EntityID EntityManager::createEntity() {
+    EntityID id = ENTITY_ID_NULL;
+
+    if (!freeIDs.empty()) {
+        id = freeIDs.back();
+        freeIDs.pop_back();
+        entities[id].id = id;
+        return id;
+    }
+
+    id = static_cast<EntityID>(entities.size());
+    entities.emplace_back();
+    entities.back().id = id;
+    return id;
+}
+
+void EntityManager::freeEntity(EntityID id) {
+    ASSERT(hasEntity(id), "EntityID " << id << " does not exist.");
+    entities[id].nullify();
+    freeIDs.push_back(id);
 }
 
 void EntityManager::print() {

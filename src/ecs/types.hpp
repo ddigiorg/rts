@@ -34,6 +34,7 @@ using GroupID  = uint32_t;
 using ChunkID  = uint32_t;
 using ChunkIdx = uint16_t;
 
+constexpr const GroupID  GROUP_ID_NULL  = std::numeric_limits<GroupID >::max();
 constexpr const ChunkID  CHUNK_ID_NULL  = std::numeric_limits<ChunkID >::max();
 constexpr const ChunkIdx CHUNK_IDX_NULL = std::numeric_limits<ChunkIdx>::max();
 

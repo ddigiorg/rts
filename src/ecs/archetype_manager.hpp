@@ -3,6 +3,7 @@
 #include "ecs/types.hpp"
 #include "ecs/archetype.hpp"
 #include "ecs/component.hpp"
+#include "utils/assert.hpp"
 
 #include <algorithm> // for std::sort
 #include <deque>
@@ -12,14 +13,20 @@
 
 namespace ECS {
 
+// =============================================================================
+// ArchetypeManager
+// =============================================================================
+
 class ArchetypeManager {
 public:
     ArchetypeManager(ComponentManager& componentMgr_);
 
-    template<typename... Components>
-    Archetype& getOrCreateArchetype();
+    bool hasArchetype(ArchetypeID id) const;
+    Archetype& getArchetype(ArchetypeID id);
 
-    // miscellaneous
+    template<typename... Components>
+    ArchetypeID getOrCreateArchetype();
+
     void print();
 
 private:
@@ -29,13 +36,30 @@ private:
     std::unordered_map<ArchetypeMask, ArchetypeID> maskToIDs;
 };
 
+// =============================================================================
+// ArchetypeManager Functions
+// =============================================================================
+
 ArchetypeManager::ArchetypeManager(ComponentManager& componentMgr_)
-        : componentMgr(componentMgr_), archetypes({}), maskToIDs({}) {
+        : componentMgr(componentMgr_),
+          archetypes({}),
+          maskToIDs({}) {
     getOrCreateArchetype();
 }
 
+bool ArchetypeManager::hasArchetype(ArchetypeID id) const {
+    if (id < static_cast<ArchetypeID>(archetypes.size()))
+        return !(archetypes[id].id == ARCHETYPE_ID_NULL);
+    return false;
+}
+
+Archetype& ArchetypeManager::getArchetype(ArchetypeID id) {
+    ASSERT(hasArchetype(id), "ArchetypeID " << id << " does not exist.");
+    return archetypes[id];
+}
+
 template<typename... Components>
-Archetype& ArchetypeManager::getOrCreateArchetype() {
+ArchetypeID ArchetypeManager::getOrCreateArchetype() {
 
     // build a vector of registered components
     std::vector<Component> components;
@@ -69,14 +93,14 @@ Archetype& ArchetypeManager::getOrCreateArchetype() {
     // if archetype already exists then return it
     auto it = maskToIDs.find(mask);
     if (it != maskToIDs.end()) {
-        return archetypes[it->second];
+        return it->second;
     }
 
     // otherwise create new archetype
     ArchetypeID id = static_cast<ArchetypeID>(archetypes.size());
     archetypes.emplace_back(id, mask, std::move(components));
     maskToIDs.insert({mask, id});
-    return archetypes.back();
+    return id;
 }
 
 void ArchetypeManager::print() {
