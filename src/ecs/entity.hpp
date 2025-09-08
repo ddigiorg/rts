@@ -10,7 +10,6 @@ namespace ECS {
 
 class Entity {
     friend class EntityManager;
-    friend class ChunkManager;
 
 public:
     Entity() { nullify(); }
@@ -21,7 +20,7 @@ public:
     ChunkIdx getChunkIdx() const { return chunkIdx; };
 
 private:
-    void _setLocation(ChunkID chunkID, ChunkIdx chunkIdx);
+    void _set(ChunkID chunkID, ChunkIdx chunkIdx);
 
     EntityID id;       // unique entity identifier
     ChunkID  chunkID;  // entity exists in this chunk
@@ -38,7 +37,7 @@ void Entity::nullify() {
     chunkIdx = CHUNK_IDX_NULL;
 }
 
-void Entity::_setLocation(ChunkID chunkID, ChunkIdx chunkIdx) {
+void Entity::_set(ChunkID chunkID, ChunkIdx chunkIdx) {
     this->chunkID  = chunkID;
     this->chunkIdx = chunkIdx;
 }

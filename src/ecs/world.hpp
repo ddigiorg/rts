@@ -39,17 +39,12 @@ public:
     EntityID createEntity(Components&&... data);
     template<typename... Components>
     EntityID createEntityInGroup(GroupID gID, Components&&... data);
-
-    // void removeEntity(EntityID id);
+    void removeEntity(EntityID eID);
     // template <typename C>
-    // void insertEntityComponent();
+    // void insertComponentIntoEntity(C&& data);
     // template <typename C>
-    // void removeEntityComponent();
+    // void removeComponentFromEntity();
     // bool hasEntity(EntityID id) const;
-    // template <typename C>
-    // C* getEntityData(EntityID id);
-    // template <typename C>
-    // void setEntityData(EntityID id, const C& value);
 
     // QueryIterator query(Query q);
 
@@ -128,6 +123,11 @@ EntityID World::createEntityInGroup(GroupID gID, Components&&... data) {
     ArchetypeID aID = archetypeMgr.getOrCreateArchetype<Components...>();
     chunkMgr.insertEntity(eID, aID, gID, std::forward<Components>(data)...);
     return eID;
+}
+
+void World::removeEntity(EntityID eID) {
+    ASSERT(entityMgr.hasEntity(eID), "Entity id does not exist");
+    chunkMgr.removeEntity(eID);
 }
 
 // =============================================================================

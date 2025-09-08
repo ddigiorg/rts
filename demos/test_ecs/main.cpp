@@ -20,7 +20,12 @@ int main() {
     ecs.createEntity(Position{ 1.0f,  2.0f}, Velocity{ 3.0f,  4.0f});
     ecs.createEntity(Position{ 5.0f,  6.0f}, Velocity{ 7.0f,  8.0f});
     ecs.createEntity(Position{ 9.0f, 10.0f}, Velocity{11.0f, 12.0f});
+
+    ecs.removeEntity(1);
+
     ecs.createEntity(Position{13.0f, 14.0f});
+
+
 
     ecs.print();
 

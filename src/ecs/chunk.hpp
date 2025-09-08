@@ -4,11 +4,13 @@
 #include "ecs/archetype.hpp"
 #include "ecs/component.hpp"
 #include "ecs/entity.hpp"
+#include "ecs/entity_manager.hpp"
 #include "utils/assert.hpp"
 
 #include <array>
 #include <cstddef> // for std::byte
 #include <cstdint>
+#include <cstring> // for std::memcpy
 #include <vector>
 
 namespace ECS {
@@ -30,6 +32,7 @@ namespace ECS {
 
 class Chunk {
     friend class ChunkManager;
+    friend class ChunkList;
 
 public:
     Chunk() { _clear(); }
@@ -41,10 +44,12 @@ public:
     bool isEmpty() const { return count == 0; }
 
     // getters
-    ChunkID  getID()       const { return id;       }
+    ChunkID  getChunkID()  const { return chunkID;  }
     GroupID  getGroupID()  const { return groupID;  }
     ChunkIdx getCount()    const { return count;    }
     ChunkIdx getCapacity() const { return capacity; }
+
+    Archetype* getArchetype() const { return archetype; }
 
     // buffer access (NOTE: unsafe! can be indexed out of bounds...)
     const EntityID* getEntityIDs() const;
@@ -55,11 +60,25 @@ public:
 
 private:
     void _clear();
-    void _initialize(ChunkID id, Archetype* a, GroupID g);
+    void _initialize(ChunkID chunkID, GroupID groupID, Archetype* archetype);
     EntityID* _getEntityIDs();
 
+    // handle entity data
+    template<typename... Components>
+    void _insertEntity(EntityID eID, EntityManager& eMgr, Components&&... eData);
+    void _removeEntity(EntityID eID, EntityManager& eMgr);
+    // void _moveEntityTo(Chunk* other, Entity& entity);
+    // void _moveEntityFrom(Chunk* other, Entity& entity);
+
+    // handle entity data helpers
+    inline void _setEntityID(ChunkIdx index, EntityID eID);
+    template<typename T, typename... Rest>
+    void _setEntityComponentData(ChunkIdx index, T&& first, Rest&&... rest);
+    template<typename T>
+    void _setSingleEntityComponentData(ChunkIdx index, T&& data);
+
     // header (metadata)
-    ChunkID id;           // 4B unique identifier
+    ChunkID chunkID;      // 4B unique identifier
     GroupID groupID;      // 4B unique group identifier
     Chunk* prevChunk;     // 8B list node to prev chunk
     Chunk* nextChunk;     // 8B list node to next chunk
@@ -113,7 +132,7 @@ const T* Chunk::data() const {
 }
 
 void Chunk::_clear() {
-    id = CHUNK_ID_NULL;
+    chunkID = CHUNK_ID_NULL;
     groupID = GROUP_ID_NULL;
     prevChunk = nullptr;
     nextChunk = nullptr;
@@ -128,10 +147,10 @@ void Chunk::_clear() {
     buffer.fill(std::byte(0));
 }
 
-void Chunk::_initialize(ChunkID id, Archetype* a, GroupID g) {
-    this->id = id;
-    archetype = a;
-    groupID = g;
+void Chunk::_initialize(ChunkID chunkID, GroupID groupID, Archetype* archetype) {
+    this->chunkID = chunkID;
+    this->groupID = groupID;
+    this->archetype = archetype;
     capacity = archetype->getCapacity();
 
     // initialize component address lookup tables
@@ -143,6 +162,78 @@ void Chunk::_initialize(ChunkID id, Archetype* a, GroupID g) {
         // ASSERT(offset + sizeof(T) * count <= BUFFER_SIZE, "Component array exceeds chunk buffer.");
         bufPtrs[i] = static_cast<void*>(buffer.data() + c.getOffset());
     }
+}
+
+// =============================================================================
+// Chunk Entity Functions
+// =============================================================================
+
+template<typename... Components>
+void Chunk::_insertEntity(EntityID eID, EntityManager& eMgr, Components&&... eData) {
+    Entity& entity = eMgr.getEntity(eID);
+    _setEntityID(count, eID);
+    _setEntityComponentData(count, std::forward<Components>(eData)...);
+    eMgr.setEntity(eID, chunkID, count);
+    count++;
+    // version++;
+}
+
+void Chunk::_removeEntity(EntityID eID, EntityManager& eMgr) {
+    Entity& remvEntity = eMgr.getEntity(eID);
+    EntityID remvID = remvEntity.getID();
+    ChunkIdx remvIdx = remvEntity.getChunkIdx();
+
+    ASSERT(_getEntityIDs()[remvIdx] == remvID, "Entity ID mismatch at chunk location.");
+
+    ChunkIdx lastIdx = count - 1;
+
+    if (remvIdx != lastIdx) {
+        EntityID lastID = _getEntityIDs()[lastIdx];
+        Entity& lastEntity = eMgr.getEntity(lastID);
+
+        _setEntityID(remvIdx, lastID);
+
+        for (const Component& component : archetype->getComponents()) {
+            ComponentID cID = component.getID();
+
+            size_t size = component.getSize();
+            std::byte* arr = static_cast<std::byte*>(bufPtrs[toIdx[cID]]);
+            std::byte* dst = arr + (size * remvIdx);
+            std::byte* src = arr + (size * lastIdx);
+
+            std::memcpy(dst, src, size);
+        }
+
+        eMgr.setEntity(lastID, chunkID, remvIdx);
+    }
+
+    eMgr.freeEntity(remvID);
+
+    count--;
+    // version++;
+}
+
+inline void Chunk::_setEntityID(ChunkIdx index, EntityID eID) {
+    ASSERT(index < capacity, "Index out of bounds.");
+    _getEntityIDs()[index] = eID;
+}
+
+template<typename T, typename... Rest>
+void Chunk::_setEntityComponentData(ChunkIdx index, T&& first, Rest&&... rest) {
+    // set the first component data
+    _setSingleEntityComponentData<T>(index, std::forward<T>(first));
+
+    // recursively set the rest if any
+    if constexpr (sizeof...(rest) > 0) {
+        _setEntityComponentData(index, std::forward<Rest>(rest)...);
+    }
+}
+
+template<typename T>
+void Chunk::_setSingleEntityComponentData(ChunkIdx index, T&& componentData) {
+    if constexpr (IsTagType<T>) return; // ignore tags
+    ASSERT(hasComponent<T>(), "Component is not in Chunk.");
+    data<T>()[index] = std::forward<T>(componentData);
 }
 
 } // namespace ECS

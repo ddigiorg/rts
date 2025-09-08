@@ -16,8 +16,9 @@ class EntityManager {
 public:
     EntityManager() : entities({}), freeIDs({}) {}
 
-    bool hasEntity(EntityID id) const;
+    bool    hasEntity(EntityID id) const;
     Entity& getEntity(EntityID id);
+    void    setEntity(EntityID id, ChunkID chunkID, ChunkIdx chunkIdx);
 
     EntityID createEntity();
     void freeEntity(EntityID id);
@@ -42,6 +43,11 @@ bool EntityManager::hasEntity(EntityID id) const {
 Entity& EntityManager::getEntity(EntityID id) {
     ASSERT(hasEntity(id), "EntityID " << id << " does not exist.");
     return entities[id];
+}
+
+void EntityManager::setEntity(EntityID id, ChunkID chunkID, ChunkIdx chunkIdx) {
+    ASSERT(hasEntity(id), "EntityID " << id << " does not exist.");
+    entities[id]._set(chunkID, chunkIdx);
 }
 
 EntityID EntityManager::createEntity() {
