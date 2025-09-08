@@ -37,7 +37,7 @@ public:
     void insertChunkOpen(Chunk* chunk);
     void removeChunkOpen(Chunk* chunk);
 
-    Chunk* getNextOpenChunk();
+    Chunk* getNextOpenChunk() { return headChunkOpen; };
 
 private:
     ChunkListKey key;
@@ -120,12 +120,6 @@ void ChunkList::removeChunkOpen(Chunk* chunk) {
 
     chunk->prevChunkOpen = nullptr;
     chunk->nextChunkOpen = nullptr;
-}
-
-Chunk* ChunkList::getNextOpenChunk() {
-    if (headChunkOpen && headChunkOpen->isFull())
-        return nullptr;
-    return headChunkOpen;
 }
 
 } // namespace ECS

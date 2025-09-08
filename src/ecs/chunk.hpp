@@ -170,6 +170,8 @@ void Chunk::_initialize(ChunkID chunkID, GroupID groupID, Archetype* archetype) 
 
 template<typename... Components>
 void Chunk::_insertEntity(EntityID eID, EntityManager& eMgr, Components&&... eData) {
+    ASSERT(!isFull(), "Cannot insert entity into full chunk.");
+
     Entity& entity = eMgr.getEntity(eID);
     _setEntityID(count, eID);
     _setEntityComponentData(count, std::forward<Components>(eData)...);
@@ -180,10 +182,9 @@ void Chunk::_insertEntity(EntityID eID, EntityManager& eMgr, Components&&... eDa
 
 void Chunk::_removeEntity(EntityID eID, EntityManager& eMgr) {
     Entity& remvEntity = eMgr.getEntity(eID);
-    EntityID remvID = remvEntity.getID();
     ChunkIdx remvIdx = remvEntity.getChunkIdx();
 
-    ASSERT(_getEntityIDs()[remvIdx] == remvID, "Entity ID mismatch at chunk location.");
+    ASSERT(_getEntityIDs()[remvIdx] == eID, "Entity ID mismatch at chunk location.");
 
     ChunkIdx lastIdx = count - 1;
 
@@ -194,20 +195,22 @@ void Chunk::_removeEntity(EntityID eID, EntityManager& eMgr) {
         _setEntityID(remvIdx, lastID);
 
         for (const Component& component : archetype->getComponents()) {
+            if (component.isTag()) continue;
+
             ComponentID cID = component.getID();
+            ComponentSize cSize = component.getSize();
 
-            size_t size = component.getSize();
             std::byte* arr = static_cast<std::byte*>(bufPtrs[toIdx[cID]]);
-            std::byte* dst = arr + (size * remvIdx);
-            std::byte* src = arr + (size * lastIdx);
+            std::byte* dst = arr + (cSize * remvIdx);
+            std::byte* src = arr + (cSize * lastIdx);
 
-            std::memcpy(dst, src, size);
+            std::memcpy(dst, src, cSize);
         }
 
         eMgr.setEntity(lastID, chunkID, remvIdx);
     }
 
-    eMgr.freeEntity(remvID);
+    eMgr.freeEntity(eID);
 
     count--;
     // version++;

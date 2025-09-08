@@ -26,10 +26,8 @@ public:
     // access
     bool   hasChunk(ChunkID id) const;
     Chunk& getChunk(ChunkID id);
-
-    
-
-    // const ChunkList* getChunkList(ArchetypeMask a, GroupID g);
+    bool       hasList(GroupID gID, Archetype& archetype) const;
+    ChunkList& getList(GroupID gID, Archetype& archetype);
 
     // entity functions
     template<typename... Components>
@@ -48,8 +46,7 @@ private:
     void   _freeChunk(ChunkID cID);
 
     // chunk list management
-    ChunkList* _getChunkList(GroupID gID, Archetype& archetype);
-    ChunkList* _getOrCreateChunkList(GroupID gID, Archetype& archetype);
+    ChunkList& _getOrCreateList(GroupID gID, Archetype& archetype);
 
     // manager references
     ArchetypeManager& archetypeMgr;
@@ -89,6 +86,19 @@ Chunk& ChunkManager::getChunk(ChunkID id) {
     return chunks[id];
 }
 
+bool ChunkManager::hasList(GroupID gID, Archetype& archetype) const {
+    ChunkListKey key{archetype.getMask(), gID};
+    auto it = lists.find(key);
+    return (it != lists.end()) ? true : false;
+}
+
+
+ChunkList& ChunkManager::getList(GroupID gID, Archetype& archetype) {
+    ASSERT(hasList(gID, archetype), "List does not exist.");
+    ChunkListKey key{archetype.getMask(), gID};
+    return lists.at(key);
+}
+
 // =============================================================================
 // ChunkManager Entity Functions
 // =============================================================================
@@ -96,35 +106,38 @@ Chunk& ChunkManager::getChunk(ChunkID id) {
 template<typename... Components>
 void ChunkManager::insertEntity(EntityID eID, ArchetypeID aID, GroupID gID, Components&&... data) {
     Archetype& archetype = archetypeMgr.getArchetype(aID);
-    ChunkList* list = _getOrCreateChunkList(gID, archetype);
-    Chunk* chunk = list->getNextOpenChunk();
+    ChunkList& list = _getOrCreateList(gID, archetype);
+    Chunk* chunk = list.getNextOpenChunk();
 
     // allocate new chunk if no empty slots available
-    if (chunk == nullptr) {
+    if (!chunk || chunk->isFull()) {
         chunk = _newChunk(gID, archetype);
-        list->insertChunk(chunk);
-        list->insertChunkOpen(chunk);
+        list.insertChunk(chunk);
+        list.insertChunkOpen(chunk);
     }
 
     chunk->_insertEntity(eID, entityMgr, std::forward<Components>(data)...);
 
     // if chunk becomes full, remove it from open list
     if (chunk->isFull()) {
-        list->removeChunkOpen(chunk);
+        list.removeChunkOpen(chunk);
     }
 }
 
 void ChunkManager::removeEntity(EntityID eID) {
-    ChunkID cID = entityMgr.getEntity(eID).getChunkID();
+    Entity& entity = entityMgr.getEntity(eID);
+    ChunkID cID = entity.getChunkID();
     Chunk& chunk = getChunk(cID);
 
-    chunk._removeEntity(eID, entityMgr);
-
-    // TODO: clean this up (maybe put ptr to chunk list in chunk?)
     // Get chunk list for managing chunk state
+    // TODO: clean this up (maybe put ptr to chunk list in chunk?)
     Archetype* archetype = chunk.getArchetype();
     ChunkListKey key{archetype->getMask(), chunk.getGroupID()};
     ChunkList& list = lists.at(key); // Should exist since chunk exists
+
+    bool wasFullBeforeRemoval = chunk.isFull();
+
+    chunk._removeEntity(eID, entityMgr);
 
     // if chunk becomes empty then remove it from lists and free it
     if (chunk.isEmpty()) {
@@ -134,7 +147,7 @@ void ChunkManager::removeEntity(EntityID eID) {
     }
 
     // if chunk is no longer full then add it back to open list
-    else if (chunk.getCount() == chunk.getCapacity() - 1) {
+    else if (wasFullBeforeRemoval) {
         list.insertChunkOpen(&chunk);
     }
 }
@@ -180,19 +193,13 @@ void ChunkManager::_freeChunk(ChunkID cID) {
     chunkFreeIDs.push_back(cID);
 }
 
-ChunkList* ChunkManager::_getChunkList(GroupID gID, Archetype& archetype) {
-    ChunkListKey key{archetype.getMask(), gID};
-    auto it = lists.find(key);
-    return (it != lists.end()) ? &it->second : nullptr;
-}
-
-ChunkList* ChunkManager::_getOrCreateChunkList(GroupID gID, Archetype& archetype) {
+ChunkList& ChunkManager::_getOrCreateList(GroupID gID, Archetype& archetype) {
     ChunkListKey key{archetype.getMask(), gID};
     auto it = lists.find(key);
     if (it == lists.end()) {
-        return &lists.emplace(key, ChunkList(key)).first->second;
+        return lists.emplace(key, ChunkList(key)).first->second;
     }
-    return &it->second;
+    return it->second;
 }
 
 } // namespace ECS
